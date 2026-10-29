@@ -3,7 +3,7 @@
 const CHAT_API =
     location.hostname === "localhost" || location.hostname === "127.0.0.1"
         ? "http://localhost:3000/chat"
-        : "https://PALITAN-MO-ITO.onrender.com/chat";
+        :"https://jaychristian-chatbot.onrender.com/chat";
 
 const CHAT_TIMEOUT = 65000;
 
