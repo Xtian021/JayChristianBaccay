@@ -1,3 +1,4 @@
+
 require("dotenv").config({
   path: require("path").join(__dirname, ".env")
 });
@@ -9,6 +10,10 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 app.set("trust proxy", 1);
+
+// ==========================================
+// CORS AND MIDDLEWARE
+// ==========================================
 
 const ALLOWED_ORIGINS = [
   "http://127.0.0.1:5500",
@@ -25,7 +30,10 @@ const ALLOWED_ORIGINS = [
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: "1mb" }));
 
-// Rate limit: 20 requests per IP per minute.
+// ==========================================
+// RATE LIMIT
+// ==========================================
+
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 60 * 1000;
 const hits = new Map();
@@ -61,9 +69,8 @@ setInterval(() => {
   }
 }, RATE_WINDOW_MS).unref();
 
-
 // ==========================================
-// GLOBAL GROK DAILY LIMIT
+// GROK DAILY LIMIT
 // ==========================================
 
 const GROK_DAILY_LIMIT = 200;
@@ -109,7 +116,10 @@ function getDailyUsage() {
 }
 
 function getRemainingGrokAttempts() {
-  return Math.max(0, GROK_DAILY_LIMIT - getDailyUsage().attempts);
+  return Math.max(
+    0,
+    GROK_DAILY_LIMIT - getDailyUsage().attempts
+  );
 }
 
 function grokDailyLimitReached(res) {
@@ -130,7 +140,6 @@ function grokDailyLimitReached(res) {
 setInterval(() => {
   getDailyUsage();
 }, 60 * 1000).unref();
-
 
 // ==========================================
 // PROFILE AND LOCAL REPLIES
@@ -247,12 +256,8 @@ RESPONSE STYLE:
 `;
 
 // ==========================================
-// CONVERSATION MODE (TONE DETECTION)
+// CONVERSATION MODE
 // ==========================================
-
-// "professional" = job offers, hiring, interviews, salary, contact requests.
-// "playful"      = the visitor is joking / casual / using hugot or banat.
-// "neutral"      = everything else (friendly, light).
 
 const PRO_RE =
   /\b(job offer|job opening|job opportunity|work opportunity|offer(ing|s)?|hiring|hire|hired|recruit(er|ers|ing|ment)?|vacanc(y|ies)|interview|resume|cv|curriculum vitae|employer|employment|human resources|hr|join our team|our company|our team|our office|our organization|work for us|work with us|salary|sweldo|sahod|compensation|pay rate|hourly rate|daily rate|monthly rate|availability|available for work|available to work|start date|contact (si |ni )?(jay|him|siya|sya)|contact (info|information|details|number)|ma contact|makontak|contact number|email|e-mail|phone number|mobile number|business inquiry|project inquiry|freelance|proposal|alok|trabaho para|kumpanya|company|applicant|applying|apply|job interview|work schedule|onboarding|probation)\b/;
@@ -271,7 +276,6 @@ const PLAYFUL_RE =
 
 const PLAYFUL_EMOJI_RE = /[😂🤣😭💀😆😅😜😝😏🤪😹]/u;
 
-// Common Filipino words used to detect the visitor's language.
 const TAGALOG_WORDS = new Set([
   "po", "opo", "ba", "ang", "ng", "mga", "si", "ni", "kay", "nya", "niya",
   "mo", "ko", "ako", "ikaw", "siya", "sya", "kami", "tayo", "pwede", "puwede",
@@ -290,14 +294,22 @@ function isPlayful(message, q) {
   return PLAYFUL_RE.test(q) || PLAYFUL_EMOJI_RE.test(message);
 }
 
+function normalizeMessage(message) {
+  return message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9\s.-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function detectMode(message, q, history = []) {
-  // 1. The latest message itself is a professional inquiry.
   if (PRO_RE.test(q)) return "professional";
 
-  // 2. The visitor is clearly joking around right now.
   if (isPlayful(message, q)) return "playful";
 
-  // 3. A professional conversation stays professional for a few turns.
   if (Array.isArray(history)) {
     const recentUserMessages = history
       .filter(
@@ -402,16 +414,9 @@ function proDeflect(tl) {
     : "I'd prefer to keep this conversation professional. I'm happy to help with Jay's skills, experience, education, and how to reach him.";
 }
 
-function normalizeMessage(message) {
-  return message
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[’']/g, "")
-    .replace(/[^a-z0-9\s.-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+// ==========================================
+// LOCAL ANSWERS
+// ==========================================
 
 function getLocalAnswer(message, history = []) {
   const q = normalizeMessage(message);
@@ -419,13 +424,11 @@ function getLocalAnswer(message, history = []) {
   const pro = mode === "professional";
   const tl = isTagalog(q);
 
-  // Professional inquiries (job offers, hiring, interviews, contact, salary)
-  // are handled first so they never fall into jokes or generic job replies.
   if (pro && PRO_RE.test(q)) {
     return getProfessionalAnswer(q, tl);
   }
 
-  // Follow-up reactions must be checked BEFORE generic crush keywords.
+  // Follow-up reactions
   if (
     /\b(pag asa agad|crush lang|crush lang sinabi ko|di ko naman tinanong|hindi ko naman tinanong|iba tinanong ko|iba ang tanong|advance ka naman|ang bilis mo naman)\b/.test(q)
   ) {
@@ -442,16 +445,15 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Explicit hugot / banat requests.
+  // Hugot
   if (
     /\b(hugot|hugot lines|banat|patama lines|hugot naman|may hugot ka|hugot nga)\b/.test(q)
   ) {
     if (pro) return proDeflect(tl);
-
     return randomReply(HUGOT_LINES);
   }
 
-  // Specific questions about who the crush is.
+  // Crush identity
   if (
     /\b(sino crush|sino ang crush|sino crush nya|sino crush niya|sino yung crush|sino ung crush|pangalan ng crush|name ng crush|who is the crush|who is his crush|may alam ka ba|may alam kaba|kilala mo ba yung crush|kilala mo ba crush)\b/.test(q)
   ) {
@@ -464,7 +466,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Greetings.
+  // Greetings
   if (
     /^(hi|hello|hey|hello there|hi there|good morning|good afternoon|good evening|magandang umaga|magandang hapon|magandang gabi|magandang araw|kumusta|kamusta|uy|hoy)( po| bot| jay| there)?$/.test(q)
   ) {
@@ -485,7 +487,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Social media requests.
+  // Social media
   const asksSocial =
     /\b(facebook|fb|instagram|insta|ig|social media|socials)\b/.test(q);
 
@@ -505,7 +507,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Location.
+  // Location
   if (
     /\b(taga saan|taga san|saan nakatira|saan galing|where is jay from|where does jay live|where are you from|where is he from|location ni jay|jay location)\b/.test(q)
   ) {
@@ -518,7 +520,7 @@ function getLocalAnswer(message, history = []) {
     return "Taga Tumauini, Isabela, Philippines si Jay. 📍 Ako naman ay chatbot niya, kaya wala akong sariling bahay. HAHAHA! 😄";
   }
 
-  // Introduction.
+  // Introduction
   if (
     /\b(who is jay|who is jay christian|tell me about jay|introduce jay|about jay|sino si jay|pakilala si jay|kwento tungkol kay jay)\b/.test(q)
   ) {
@@ -531,7 +533,7 @@ function getLocalAnswer(message, history = []) {
     return "Jay Christian Baccay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. He completed an internship at the Philippine Statistics Authority and has skills in web development, basic IT support, and data entry. He is shy at first, but eager to learn.";
   }
 
-  // Relationship status.
+  // Relationship status
   if (
     /\b(single|may jowa|may girlfriend|may boyfriend|may partner|may asawa|taken ba|in a relationship|love life|jowa ni jay|girlfriend ni jay|boyfriend ni jay)\b/.test(q)
   ) {
@@ -544,7 +546,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Picture-related questions.
+  // Picture-related questions
   if (
     /\b(picture|photo|pic|selfie|larawan)\b/.test(q) &&
     /\b(crush|sila|magkasama|jay|niya|nya|kayo|dalawa|together)\b/.test(q)
@@ -558,7 +560,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Only answer chance questions when the visitor asks about chances.
+  // Chances
   if (
     /\b(may pag asa|pag asa ba|pag asa pa|may chance|chance ba|gusto ba siya|gusto ba sya|gusto siya ng crush|gusto sya ng crush|mutual ba|type ba siya|type ba sya|mahal ba siya|mahal ba sya|walang pag asa|wala syang pag asa|wala siyang pag asa|no chance|umaasa ba ako|asa pa ba ako|may chance pa|may pag asa pa)\b/.test(q)
   ) {
@@ -571,7 +573,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Personality.
+  // Personality
   if (
     /\b(shy|mahiyain|personality|ugali ni jay|personality ni jay)\b/.test(q)
   ) {
@@ -584,7 +586,7 @@ function getLocalAnswer(message, history = []) {
     return "Mahiyain si Jay, lalo na kapag bagong kakilala. 😊 Pero willing siyang matuto, makipag-collaborate, at mag-improve. Tahimik minsan, pero hindi ibig sabihing walang laman ang utak! CHAROT! 😂";
   }
 
-  // Web development.
+  // Web development
   if (
     /\b(html|css|javascript|web development|web developer|build a system|building systems|gumawa ng system|gumawa ng website|website development|coding|programming skills)\b/.test(q)
   ) {
@@ -593,7 +595,7 @@ function getLocalAnswer(message, history = []) {
       : "Jay can use HTML, CSS, and JavaScript to build websites and web-based systems. He also has experience in basic IT support, data entry and verification, and Figma/Canva. I won't describe him as an expert in other technologies unless that is confirmed.";
   }
 
-  // Technical skills.
+  // Technical skills
   if (
     /\b(skill|skills|technical skills|technical skill|kakayahan|ano ang alam ni jay|what can jay do)\b/.test(q)
   ) {
@@ -602,7 +604,7 @@ function getLocalAnswer(message, history = []) {
       : "Jay's technical skills include:\n- HTML, CSS, and JavaScript for websites and web-based systems\n- Windows 10/11 installation and configuration\n- Basic computer hardware and printer troubleshooting\n- Basic LAN/Wi-Fi troubleshooting\n- Data entry, verification, and digital record management\n- Basic technical support / help desk\n- Microsoft Word and basic Excel\n- Data Analytics training through TESDA\n- Beginner-level Figma and Canva for UI/UX and visual design\n\nHis skills are at a basic and developing level, so I won't present them as expert-level.";
   }
 
-  // Internship and work experience.
+  // Internship and work experience
   if (
     /\b(psa|internship|ojt|intern experience|work experience|experience ni jay|trabaho ni jay)\b/.test(q)
   ) {
@@ -611,7 +613,7 @@ function getLocalAnswer(message, history = []) {
       : "Jay completed an internship as an IT / Registration Support Intern at the Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office in City of Ilagan, from December 2025 to April 2026, for a total of 486 hours. His tasks included PhilSys data entry and verification, document processing, digital records management, NAS uploads, temporary PhilSys ID processing, FindMyTRN checks, and basic computer and printer support. This was an internship, not permanent employment.";
   }
 
-  // Education.
+  // Education
   if (
     /\b(education|educational background|graduate|college|school|degree|kurso|paaralan|what course|anong course)\b/.test(q)
   ) {
@@ -620,7 +622,7 @@ function getLocalAnswer(message, history = []) {
       : "Jay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. in Isabela.";
   }
 
-  // Career interests.
+  // Career interests
   if (
     /\b(career goal|career objective|looking for work|job|trabaho|anong trabaho|what job|career interests|job interests)\b/.test(q)
   ) {
@@ -629,7 +631,7 @@ function getLocalAnswer(message, history = []) {
       : "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
   }
 
-  // Design tools.
+  // Design tools
   if (
     /\b(figma|canva|ui.?ux|design skills|graphic design)\b/.test(q)
   ) {
@@ -638,7 +640,7 @@ function getLocalAnswer(message, history = []) {
       : "Jay has experience with Figma and Canva and is interested in UI/UX design. His level with design tools is still beginner, and he continues to practice and improve.";
   }
 
-  // Data Analytics.
+  // Data Analytics
   if (
     /\b(data analytics|tesda|certificate|certification|training)\b/.test(q)
   ) {
@@ -647,7 +649,7 @@ function getLocalAnswer(message, history = []) {
       : "Jay has Data Analytics training/certificate through TESDA. He also has experience in data entry, data verification, and digital records management from his PSA internship.";
   }
 
-  // Thanks.
+  // Thanks
   if (/\b(thank you|thanks|salamat|thank u)\b/.test(q)) {
     const formalThanks =
       pro || /\b(po|thank you for|appreciate)\b/.test(q);
@@ -665,7 +667,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Goodbye.
+  // Goodbye
   if (/^(bye|goodbye|paalam|see you|ingat)$/.test(q)) {
     if (pro) {
       return tl
@@ -679,54 +681,55 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Other casual questions go to Gemini.
+  // Unknown questions are handled by Grok.
   return null;
 }
 
 // ==========================================
-// GEMINI CONFIGURATION
+// GROK CONFIGURATION
 // ==========================================
 
-// Keep existing configured model IDs.
-const MODELS = [
-  "gemini-3.5-flash-lite",
-  "gemini-3.8-flash"
-];
+// You can use GROK_API_KEY or XAI_API_KEY in your hosting environment.
+const GROK_API_KEY =
+  process.env.GROK_API_KEY || process.env.XAI_API_KEY;
 
-const GEMINI_TIMEOUT_MS = 60000;
+const MODELS = ["grok-4.7"];
+const GROK_TIMEOUT_MS = 120000;
 
 // ==========================================
 // API ENDPOINTS
 // ==========================================
 
-// Root endpoint.
 app.get("/", (req, res) => {
   res.json({
-    message: "Jay's portfolio chatbot API is running."
+    message: "Jay's portfolio chatbot API is running.",
+    provider: "Grok"
   });
 });
 
-// Health check.
 app.get("/health", (req, res) => {
   const usage = getDailyUsage();
 
   res.json({
     status: "ok",
     message: "Chatbot server is running.",
-    apiKeyConfigured: Boolean(process.env.GEMINI_API_KEY),
-    geminiDailyLimit: GEMINI_DAILY_LIMIT,
-    geminiAttemptsUsed: usage.attempts,
-    geminiAttemptsRemaining: getRemainingGeminiAttempts(),
+    provider: "Grok",
+    apiKeyConfigured: Boolean(GROK_API_KEY),
+    grokDailyLimit: GROK_DAILY_LIMIT,
+    grokAttemptsUsed: usage.attempts,
+    grokAttemptsRemaining: getRemainingGrokAttempts(),
     resetTimeZone: PHILIPPINE_TIME_ZONE
   });
 });
 
-// Show configured models.
 app.get("/models", (req, res) => {
   res.json({ models: MODELS });
 });
 
-// Chat endpoint.
+// ==========================================
+// CHAT ENDPOINT
+// ==========================================
+
 app.post("/chat", rateLimit, async (req, res) => {
   try {
     const { message, history = [] } = req.body || {};
@@ -739,12 +742,11 @@ app.post("/chat", rateLimit, async (req, res) => {
 
     const cleanMessage = message.trim().slice(0, 1500);
 
-    // Detect tone/language from the visitor's latest message and recent history.
     const normalizedMessage = normalizeMessage(cleanMessage);
     const mode = detectMode(cleanMessage, normalizedMessage, history);
     const tagalog = isTagalog(normalizedMessage);
 
-    // Local replies do not consume Gemini quota or daily attempts.
+    // Local replies do not use Grok API attempts.
     const localAnswer = getLocalAnswer(cleanMessage, history);
 
     if (localAnswer) {
@@ -755,91 +757,90 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!GROK_API_KEY) {
       return res.status(500).json({
-        error: "Missing Gemini API key. Check the .env file or the host's environment variables."
+        error: "Missing Grok API key. Add GROK_API_KEY to your .env file or hosting environment variables."
       });
     }
 
-    // Check the daily limit before starting any Gemini API request.
-    if (getRemainingGeminiAttempts() <= 0) {
-      return geminiDailyLimitReached(res);
+    if (getRemainingGrokAttempts() <= 0) {
+      return grokDailyLimitReached(res);
     }
 
-    const contents = [];
+    // Convert conversation history to the format expected by Grok.
+    const messages = [
+      {
+        role: "system",
+        content: SYSTEM_PROMPT + "\n" + buildModeInstruction(mode, tagalog)
+      }
+    ];
 
     if (Array.isArray(history)) {
       for (const item of history.slice(-6)) {
         if (
-          item &&
-          ["user", "model"].includes(item.role) &&
-          typeof item.text === "string" &&
-          item.text.trim()
+          !item ||
+          typeof item.text !== "string" ||
+          !item.text.trim()
         ) {
-          contents.push({
-            role: item.role,
-            parts: [{
-              text: item.text.trim().slice(0, 1200)
-            }]
-          });
+          continue;
         }
+
+        let role = item.role;
+
+        // Gemini-style "model" history is converted to OpenAI-style "assistant".
+        if (role === "model") role = "assistant";
+
+        if (role !== "user" && role !== "assistant") {
+          continue;
+        }
+
+        messages.push({
+          role,
+          content: item.text.trim().slice(0, 1200)
+        });
       }
     }
 
-    // Gemini conversations must start with a user turn.
-    while (contents.length && contents[0].role !== "user") {
-      contents.shift();
-    }
-
-    contents.push({
+    messages.push({
       role: "user",
-      parts: [{ text: cleanMessage }]
+      content: cleanMessage
     });
 
-    // Base prompt + tone/language rules for this specific conversation.
-    const systemInstructionText =
-      SYSTEM_PROMPT + "\n" + buildModeInstruction(mode, tagalog);
-
-    // Professional replies should be steadier and less random.
-    const temperature = mode === "professional" ? 0.4 : 0.9;
+    const temperature = mode === "professional" ? 0.4 : 0.7;
 
     let lastError = "No model returned a response.";
     let lastStatus = 0;
 
     for (const model of MODELS) {
-      // Count each individual API attempt, including failed attempts.
       const usage = getDailyUsage();
 
-      if (usage.attempts >= GEMINI_DAILY_LIMIT) {
-        return geminiDailyLimitReached(res);
+      if (usage.attempts >= GROK_DAILY_LIMIT) {
+        return grokDailyLimitReached(res);
       }
 
+      // Count one attempt for every Grok API request.
       usage.attempts++;
 
       console.log(
-        `Gemini API attempt ${usage.attempts}/${GEMINI_DAILY_LIMIT} using ${model} (mode: ${mode})`
+        `Grok API attempt ${usage.attempts}/${GROK_DAILY_LIMIT} using ${model} (mode: ${mode})`
       );
 
       try {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          "https://api.x.ai/v1/chat/completions",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-goog-api-key": process.env.GEMINI_API_KEY
+              "Authorization": `Bearer ${GROK_API_KEY}`
             },
             body: JSON.stringify({
-              systemInstruction: {
-                parts: [{ text: systemInstructionText }]
-              },
-              contents,
-              generationConfig: {
-                temperature,
-                maxOutputTokens: 400
-              }
+              model,
+              messages,
+              temperature,
+              max_tokens: 400
             }),
-            signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS)
+            signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
           }
         );
 
@@ -847,51 +848,62 @@ app.post("/chat", rateLimit, async (req, res) => {
 
         if (!response.ok) {
           lastStatus = response.status;
-          lastError = data.error?.message || `HTTP ${response.status}`;
+          lastError =
+            data.error?.message ||
+            data.message ||
+            `HTTP ${response.status}`;
 
           console.error(
-            `Gemini ${model} error (${response.status}):`,
+            `Grok ${model} error (${response.status}):`,
             lastError
           );
 
           continue;
         }
 
-        const answer = data.candidates?.[0]?.content?.parts
-          ?.map(part => part.text || "")
-          .join("")
-          .trim();
+        const content = data.choices?.[0]?.message?.content;
+
+        let answer = "";
+
+        if (typeof content === "string") {
+          answer = content.trim();
+        } else if (Array.isArray(content)) {
+          answer = content
+            .map(part => {
+              if (typeof part === "string") return part;
+              return part?.text || "";
+            })
+            .join("")
+            .trim();
+        }
 
         if (answer) {
           console.log("Chat answered using model:", model);
 
           return res.json({
             answer,
-            source: "gemini",
+            source: "grok",
             mode
           });
         }
 
         lastStatus = response.status;
-        lastError = data.promptFeedback?.blockReason
-          ? `Request blocked: ${data.promptFeedback.blockReason}`
-          : "Gemini returned no text.";
+        lastError = "Grok returned no text.";
 
-        console.error(`Gemini ${model}:`, lastError);
+        console.error(`Grok ${model}:`, lastError);
       } catch (error) {
         lastError = error.message || "Unknown connection error";
         lastStatus = 0;
 
         console.error(
-          `Gemini connection error (${model}):`,
+          `Grok connection error (${model}):`,
           lastError
         );
       }
     }
 
-    // If the last attempt used up the daily allowance, report the cap.
-    if (getRemainingGeminiAttempts() <= 0) {
-      return geminiDailyLimitReached(res);
+    if (getRemainingGrokAttempts() <= 0) {
+      return grokDailyLimitReached(res);
     }
 
     if (
@@ -899,14 +911,16 @@ app.post("/chat", rateLimit, async (req, res) => {
       /quota|rate limit|resource exhausted/i.test(lastError)
     ) {
       return res.status(429).json({
-        error: "Naabot na yata ang Gemini free-tier limit ngayon. Subukan ulit mamaya. Ang common questions at hugot requests ay masasagot pa rin ng chatbot kahit walang Gemini call.",
-        source: "gemini_limit"
+        error: "Naabot na yata ang Grok API rate limit o usage limit ngayon. Subukan ulit mamaya. Gagana pa rin ang local replies.",
+        source: "grok_limit"
       });
     }
 
     return res.status(502).json({
-      error: `No available model returned a response. ${lastError}`
+      error: `Grok did not return a response. ${lastError}`,
+      source: "grok_error"
     });
+
   } catch (error) {
     console.error("Chat server error:", error.message);
 
@@ -922,10 +936,8 @@ app.post("/chat", rateLimit, async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Chatbot server running at http://localhost:${PORT}`);
-  console.log(
-    "Gemini API key configured:",
-    Boolean(process.env.GEMINI_API_KEY)
-  );
-  console.log(`Gemini daily API attempt limit: ${GEMINI_DAILY_LIMIT}`);
+  console.log("AI provider: Grok");
+  console.log("Grok API key configured:", Boolean(GROK_API_KEY));
+  console.log(`Grok daily API attempt limit: ${GROK_DAILY_LIMIT}`);
   console.log(`Daily counter resets at midnight ${PHILIPPINE_TIME_ZONE}.`);
 });
