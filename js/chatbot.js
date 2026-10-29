@@ -1,9 +1,8 @@
 // Local: gagamit ng localhost. Online (GitHub Pages): gagamit ng deployed server.
-// Palitan ang PALITAN-MO-ITO ng URL ng server mo kapag na-deploy mo na.
 const CHAT_API =
     location.hostname === "localhost" || location.hostname === "127.0.0.1"
         ? "http://localhost:3000/chat"
-        :"https://jaychristian-chatbot.onrender.com/chat";
+        : "https://jaychristian-chatbot.onrender.com/chat";
 
 const CHAT_TIMEOUT = 65000;
 
@@ -327,4 +326,4 @@ document.addEventListener("DOMContentLoaded", () => {
             input.focus();
         }
     });
-});f 
+});
