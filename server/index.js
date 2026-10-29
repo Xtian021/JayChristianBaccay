@@ -61,14 +61,12 @@ setInterval(() => {
   }
 }, RATE_WINDOW_MS).unref();
 
+
 // ==========================================
-// GLOBAL GEMINI DAILY LIMIT
+// GLOBAL GROK DAILY LIMIT
 // ==========================================
 
-// Maximum of 200 Gemini API attempts per day.
-// Counts every model request, including failed requests.
-// Resets at midnight Philippine time (Asia/Manila).
-const GEMINI_DAILY_LIMIT = 200;
+const GROK_DAILY_LIMIT = 200;
 const PHILIPPINE_TIME_ZONE = "Asia/Manila";
 
 function getPhilippineDateKey() {
@@ -90,7 +88,7 @@ function getPhilippineDateKey() {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-let geminiDailyUsage = {
+let grokDailyUsage = {
   date: getPhilippineDateKey(),
   attempts: 0
 };
@@ -98,46 +96,41 @@ let geminiDailyUsage = {
 function getDailyUsage() {
   const today = getPhilippineDateKey();
 
-  // Reset automatically when the Philippine calendar day changes.
-  if (geminiDailyUsage.date !== today) {
-    geminiDailyUsage = {
+  if (grokDailyUsage.date !== today) {
+    grokDailyUsage = {
       date: today,
       attempts: 0
     };
 
-    console.log("Gemini daily usage counter reset:", today);
+    console.log("Grok daily usage counter reset:", today);
   }
 
-  return geminiDailyUsage;
+  return grokDailyUsage;
 }
 
-function getRemainingGeminiAttempts() {
-  const usage = getDailyUsage();
-
-  return Math.max(0, GEMINI_DAILY_LIMIT - usage.attempts);
+function getRemainingGrokAttempts() {
+  return Math.max(0, GROK_DAILY_LIMIT - getDailyUsage().attempts);
 }
 
-function geminiDailyLimitReached(res) {
+function grokDailyLimitReached(res) {
   const usage = getDailyUsage();
 
   return res.status(429).json({
     error:
-      "Naabot na ang daily Gemini limit na 200 API attempts. " +
-      "Subukan ulit bukas. Gagana pa rin ang common questions, " +
-      "profile answers, social media links, at hugot requests na local replies.",
+      "Naabot na ang daily Grok attempt limit na 200. " +
+      "Subukan ulit bukas. Gagana pa rin ang local replies.",
     source: "daily_limit",
-    dailyLimit: GEMINI_DAILY_LIMIT,
+    dailyLimit: GROK_DAILY_LIMIT,
     attemptsUsed: usage.attempts,
     attemptsRemaining: 0,
     resetTimeZone: PHILIPPINE_TIME_ZONE
   });
 }
 
-// Periodically reset the counter if the date has changed.
-// This timer does not keep Node.js running by itself.
 setInterval(() => {
   getDailyUsage();
 }, 60 * 1000).unref();
+
 
 // ==========================================
 // PROFILE AND LOCAL REPLIES
