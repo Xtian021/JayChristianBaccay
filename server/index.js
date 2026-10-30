@@ -72,7 +72,6 @@ setInterval(() => {
 // GROK DAILY LIMIT
 // ==========================================
 
-// Pwede mong palitan sa Render Environment: GROK_DAILY_LIMIT
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
 const PHILIPPINE_TIME_ZONE = "Asia/Manila";
 
@@ -158,9 +157,6 @@ const HUGOT_LINES = [
 // JAY'S FRIENDS
 // ==========================================
 
-// match   = regex na chine-check sa normalized (lowercase, walang accent) na message
-// tl / en = info ng kaibigan (iwanang "" kung wala pa)
-// partner = pangalan ng jowa (iwanang "" kung wala pa o ayaw ilagay)
 const FRIENDS = [
   {
     name: "Arjay Cabia Cabinbin",
@@ -261,7 +257,6 @@ function friendsForPrompt() {
 // TESDA CLASSMATES (Data Analytics III)
 // ==========================================
 
-// Pangalan lang ang ibinibigay ng chatbot. Walang ibang info.
 const TESDA_CLASSMATES = [
   "Abejane Medrano",
   "Ace Batad",
@@ -295,12 +290,8 @@ const TESDA_CLASSMATES = [
 ];
 
 const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii"]);
-
-// Mga first name na kailangan ng isa pang parte ng pangalan para ma-match
-// (para hindi ma-trigger ng "Jay", "Angel", o "Ed" na karaniwang salita/pangalan)
 const SKIP_FIRST_NAME_ONLY = new Set(["jay", "angel", "ed"]);
 
-// Para ma-match ang pangalan kahit first name lang, o kulang ang apelyido
 const tesdaIndex = TESDA_CLASSMATES.map(name => {
   const tokens = normalizeMessage(name)
     .replace(/\./g, "")
@@ -330,6 +321,10 @@ function findTesdaClassmates(q) {
 function tesdaForPrompt() {
   return TESDA_CLASSMATES.map(name => `  - ${name}`).join("\n");
 }
+
+// ==========================================
+// SYSTEM PROMPT
+// ==========================================
 
 const SYSTEM_PROMPT = `
 You are the personal portfolio assistant for Jay Christian Baccay.
@@ -610,6 +605,50 @@ function proDeflect(tl) {
 }
 
 // ==========================================
+// LOCAL RECOMMENDATIONS - NO GROK TOKENS
+// ==========================================
+
+function getLocalRecommendation(q, tl) {
+  // IT learning recommendations
+  if (
+    /\b(what should i learn|what to learn|recommend.*learn|suggest.*learn|ano dapat aralin|ano ang dapat kong aralin|anong dapat aralin|ano pa ang pwede aralin|ano pa dapat kong matutunan|suggestion.*learning|recommendation.*learning)\b/.test(q)
+  ) {
+    return tl
+      ? "Kung nagsisimula ka pa lang sa IT, ito ang magandang learning path:\n\n1. HTML, CSS, at JavaScript – para sa web development.\n2. Computer Hardware – para sa troubleshooting.\n3. Networking Fundamentals – LAN, Wi-Fi, IP address, at basic networking.\n4. Windows Installation – installation at configuration.\n5. Database Fundamentals – basic SQL at database concepts.\n6. Data Analytics – Excel, Python, at data visualization.\n\nTip: Isa-isahin mo lang. Mas magandang may actual projects ka habang nag-aaral. 😊"
+      : "If you're just starting in IT, here's a practical learning path:\n\n1. HTML, CSS, and JavaScript – for web development.\n2. Computer Hardware – for troubleshooting.\n3. Networking Fundamentals – LAN, Wi-Fi, IP addresses, and basic networking.\n4. Windows Installation – installation and configuration.\n5. Database Fundamentals – basic SQL and database concepts.\n6. Data Analytics – Excel, Python, and data visualization.\n\nTip: Learn one topic at a time and build small projects as you go.";
+  }
+
+  // IT career recommendations
+  if (
+    /\b(recommend.*it job|suggest.*it job|what it job|which it career|best it career|ano magandang it job|anong trabaho.*it|anong position.*it|career recommendation|job recommendation|recommend.*career|suggest.*career)\b/.test(q)
+  ) {
+    return tl
+      ? "Para sa beginner sa IT, magandang pagpilian ang mga ito:\n\n- IT Support – computer, Windows, at printer troubleshooting.\n- Data Encoder – data entry, verification, at record management.\n- Junior Web Developer – HTML, CSS, at JavaScript.\n- Technical Support – basic troubleshooting at user assistance.\n- Data Analyst Trainee – Excel, Python, at data analytics.\n\nPiliin ang role na tugma sa skills at experience mo. Hindi kailangang expert agad; mahalaga ang willingness to learn."
+      : "For someone starting in IT, these are good entry-level options:\n\n- IT Support – computer, Windows, and printer troubleshooting.\n- Data Encoder – data entry, verification, and record management.\n- Junior Web Developer – HTML, CSS, and JavaScript.\n- Technical Support – basic troubleshooting and user assistance.\n- Data Analyst Trainee – Excel, Python, and data analytics.\n\nChoose a role that matches your current skills. You don't need to be an expert to start; willingness to learn matters.";
+  }
+
+  // Website and system project recommendations
+  if (
+    /\b(project ideas|project suggestion|suggest.*project|recommend.*project|what project|anong project|ano magandang project|website idea|system idea|system recommendation)\b/.test(q)
+  ) {
+    return tl
+      ? "Narito ang ilang beginner-friendly IT project ideas:\n\n1. Personal Portfolio Website\n2. Student Information Management System\n3. Inventory Management System\n4. Attendance Monitoring System\n5. Job Listing Website\n6. Simple Analytics Dashboard\n7. Computer Troubleshooting Guide Website\n\nTip: Gumamit ng HTML, CSS, JavaScript, at PHP/MySQL kung gusto mong gumawa ng full web-based system."
+      : "Here are some beginner-friendly IT project ideas:\n\n1. Personal Portfolio Website\n2. Student Information Management System\n3. Inventory Management System\n4. Attendance Monitoring System\n5. Job Listing Website\n6. Simple Analytics Dashboard\n7. Computer Troubleshooting Guide Website\n\nTip: You can use HTML, CSS, JavaScript, and PHP/MySQL to build a complete web-based system.";
+  }
+
+  // General recommendation request
+  if (
+    /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|any advice|give me advice|what do you recommend|what do you suggest|may ma recommend|may maire recommend|ano ma suggest|ano ma recommend|suggestion mo)\b/.test(q)
+  ) {
+    return tl
+      ? "Sure! 😊 Anong klaseng recommendation ang kailangan mo—IT learning, career/job, website project, programming, o personal advice? Sabihin mo lang para mas maitugma ko ang suggestion."
+      : "Sure! 😊 What kind of recommendation are you looking for—IT learning, career/job, website projects, programming, or general advice? Tell me the topic so I can give you a more relevant suggestion.";
+  }
+
+  return null;
+}
+
+// ==========================================
 // LOCAL ANSWERS
 // ==========================================
 
@@ -619,24 +658,29 @@ function getLocalAnswer(message, history = []) {
   const pro = mode === "professional";
   const tl = isTagalog(q);
 
-  // Suggested questions (hardcoded, professional)
+  // Recommendations are handled locally. No Grok API request.
+  if (!pro) {
+    const recommendation = getLocalRecommendation(q, tl);
+
+    if (recommendation) return recommendation;
+  }
+
+  // Common suggested questions and chat starters
   if (
     /^(lets chat|lets talk|let us chat|hi can we chat|hi lets chat|hello can we chat)$/.test(q)
   ) {
     return randomReply([
       "Hello! 👋 Welcome sa portfolio ni Jay! I'm happy to chat with you. You can ask me about his IT skills, internship experience, education, projects, or career goals. 😊",
-
       "Hi there! 😎 Welcome! Ako ang AI assistant ni Jay. Ano ang gusto mong malaman tungkol sa kanya? Pwede tayong mag-usap tungkol sa kanyang skills, OJT, projects, at career.",
-
       "Hey! 👋 Nice to meet you! Feel free to explore Jay's portfolio. Ask me anything about his education, technical skills, internship, and projects!"
     ]);
   }
 
-  if (/^career goals?$/.test(q)) {
+  if (/^(career goals?|what are your career goals|what are jays career goals)$/.test(q)) {
     return "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
   }
 
-  if (/^contact jay$/.test(q)) {
+  if (/^(contact jay|how can i contact jay|how to contact jay)$/.test(q)) {
     return `You can reach Jay through the details below:\n\n${contactBlock()}`;
   }
 
@@ -661,7 +705,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Lerry: sasagot lang kapag tinanong si Lerry (playsafe, walang confirmation)
+  // Lerry
   if (/\b(lerry|fortuno)\b/.test(q)) {
     if (pro) return proDeflect(tl);
 
@@ -708,7 +752,7 @@ function getLocalAnswer(message, history = []) {
       : `Here are Jay's classmates in TESDA Data Analytics III:\n\n${lines}`;
   }
 
-  // TESDA: asking about one specific classmate
+  // TESDA: specific classmate
   const tesdaMatches = findTesdaClassmates(q);
 
   if (tesdaMatches.length > 0 && tesdaMatches.length <= 3) {
@@ -744,10 +788,9 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Friends: asking about one specific friend (e.g. "kilala mo ba si arjay cabinbin")
+  // Friends
   let matchedFriends = FRIENDS.filter(friend => friend.match.test(q));
 
-  // "arjay" lang ang sinabi, walang apelyido: ibigay ang dalawang Arjay
   if (matchedFriends.length === 0 && /\barjay\b/.test(q)) {
     matchedFriends = [FRIENDS[0], FRIENDS[1]];
   }
@@ -758,10 +801,8 @@ function getLocalAnswer(message, history = []) {
     return matchedFriends.map(friend => friendInfo(friend, tl)).join("\n\n");
   }
 
-  // Friends: asking for the whole list (e.g. "sino mga kaibigan ni jay")
-  if (
-    /\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)
-  ) {
+  // Friends list
+  if (/\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)) {
     if (pro) return proDeflect(tl);
 
     const lines = FRIENDS.map(friend => friendListLine(friend, tl)).join("\n");
@@ -991,11 +1032,9 @@ function getLocalAnswer(message, history = []) {
 }
 
 // ==========================================
-// VIBE FALLBACK (kapag tapos na ang quota o nag-error ang Grok)
+// VIBE FALLBACK
 // ==========================================
 
-// Sumasagot pa rin ang chatbot sa vibe, at itinuturo ang mga tanong
-// na kaya pa niyang sagutin kahit walang Grok.
 function getVibeFallback(mode, tl, reason) {
   const limited = reason === "daily_limit" || reason === "ip_limit";
 
@@ -1021,7 +1060,6 @@ function getVibeFallback(mode, tl, reason) {
     ]);
   }
 
-  // neutral
   return tl
     ? "Pasensya na, hindi ko masasagot nang maayos ang tanong na iyan sa ngayon. Subukan mo ulit mamaya, o itanong mo muna ang tungkol sa skills, internship, education, o social media ni Jay at masasagot ko agad. 😊"
     : "Sorry, I can't answer that properly right now. Please try again later, or ask me about Jay's skills, internship, education, or social media and I can answer right away. 😊";
@@ -1037,11 +1075,11 @@ function respondFallback(res, mode, tagalog, reason) {
 }
 
 // ==========================================
-// QUOTA SAVERS (cache, per-IP limit, filler replies)
+// QUOTA SAVERS
 // ==========================================
 
-// ---------- Answer cache ----------
-const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+// Answer cache
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 500;
 const answerCache = new Map();
 
@@ -1068,10 +1106,10 @@ function setCachedAnswer(key, answer) {
   });
 }
 
-// ---------- Per-IP daily Grok limit ----------
-// Pwede mong palitan sa Render Environment: GROK_PER_IP_DAILY_LIMIT
+// Per-IP daily Grok limit
 const GROK_PER_IP_DAILY_LIMIT =
   Number(process.env.GROK_PER_IP_DAILY_LIMIT) || 30;
+
 const ipGrokUsage = new Map();
 
 function getIpGrokUsage(ip) {
@@ -1094,12 +1132,11 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000).unref();
 
-// ---------- Filler messages answered locally ----------
+// Filler messages answered locally
 const FILLER_RE =
   /^(ok|okay|okey|k|sige|ge|ah+|oh+|hm+|hmm+|wow|nice|cool|galing|talaga|really|weh|haha+|hehe+|hihi+|lol|wala|ayos|aww+|i see|got it)( po| na| lang)?$/;
 
 function getFillerAnswer(q, mode, tl) {
-  // q is empty when the message was only emojis/symbols
   if (q && !FILLER_RE.test(q)) return null;
 
   if (mode === "professional") {
@@ -1116,10 +1153,11 @@ function getFillerAnswer(q, mode, tl) {
   ]);
 }
 
-// ---------- Token savers ----------
+// Token savers
 const GROK_HISTORY_LIMIT = 4;
 const GROK_HISTORY_CHARS = 600;
 const GROK_MAX_TOKENS = 400;
+
 const BREVITY_RULE =
   "\nKeep replies concise (about 100 words or less) unless the visitor asks for details.";
 
@@ -1127,7 +1165,6 @@ const BREVITY_RULE =
 // GROK CONFIGURATION
 // ==========================================
 
-// You can use GROK_API_KEY or XAI_API_KEY in your hosting environment.
 const GROK_API_KEY =
   process.env.GROK_API_KEY || process.env.XAI_API_KEY;
 
@@ -1185,7 +1222,7 @@ app.post("/chat", rateLimit, async (req, res) => {
     const mode = detectMode(cleanMessage, normalizedMessage, history);
     const tagalog = isTagalog(normalizedMessage);
 
-    // 1) Local replies do not use Grok API attempts.
+    // 1. Local answers: no Grok API usage.
     const localAnswer = getLocalAnswer(cleanMessage, history);
 
     if (localAnswer) {
@@ -1196,7 +1233,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 2) Filler messages ("ok", "wow", "haha") are answered locally too.
+    // 2. Filler messages: no Grok API usage.
     const fillerAnswer = getFillerAnswer(normalizedMessage, mode, tagalog);
 
     if (fillerAnswer) {
@@ -1207,7 +1244,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 3) Cache: only for first questions (no history) and non-playful mode.
+    // 3. Cache: first questions only, non-playful mode.
     const hasHistory = Array.isArray(history) && history.length > 0;
     const canCache = !hasHistory && mode !== "playful";
     const cacheKey = `${mode}|${normalizedMessage}`;
@@ -1230,19 +1267,19 @@ app.post("/chat", rateLimit, async (req, res) => {
       return respondFallback(res, mode, tagalog, "no_key");
     }
 
-    // 4) Global daily limit: sumasagot pa rin sa vibe kahit tapos na.
+    // 4. Global daily limit.
     if (getRemainingGrokAttempts() <= 0) {
       return respondFallback(res, mode, tagalog, "daily_limit");
     }
 
-    // 5) Per-IP daily limit so one visitor cannot use up the whole quota.
+    // 5. Per-IP daily limit.
     const ipUsage = getIpGrokUsage(req.ip);
 
     if (ipUsage.attempts >= GROK_PER_IP_DAILY_LIMIT) {
       return respondFallback(res, mode, tagalog, "ip_limit");
     }
 
-    // Convert conversation history to the format expected by Grok.
+    // Build conversation history for Grok.
     const messages = [
       {
         role: "system",
@@ -1266,7 +1303,6 @@ app.post("/chat", rateLimit, async (req, res) => {
 
         let role = item.role;
 
-        // Gemini-style "model" history is converted to OpenAI-style "assistant".
         if (role === "model") role = "assistant";
 
         if (role !== "user" && role !== "assistant") {
@@ -1297,7 +1333,7 @@ app.post("/chat", rateLimit, async (req, res) => {
         return respondFallback(res, mode, tagalog, "daily_limit");
       }
 
-      // Count one attempt for every Grok API request (global and per IP).
+      // Count every Grok API request.
       usage.attempts++;
       ipUsage.attempts++;
 
@@ -1313,7 +1349,6 @@ app.post("/chat", rateLimit, async (req, res) => {
             headers: {
               "Content-Type": "application/json",
               "Authorization": `Bearer ${GROK_API_KEY}`,
-              // Stable id so xAI can reuse the cached system prompt.
               "x-grok-conv-id": "jay-portfolio-chatbot"
             },
             body: JSON.stringify({
@@ -1386,8 +1421,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       }
     }
 
-    // 6) Nag-error ang Grok (rate limit, naubos na credits, timeout, atbp.):
-    //    sumasagot pa rin sa vibe imbes na magpakita ng error.
+    // 6. Grok failed: use local fallback.
     if (getRemainingGrokAttempts() <= 0) {
       return respondFallback(res, mode, tagalog, "daily_limit");
     }
