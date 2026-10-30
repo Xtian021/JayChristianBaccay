@@ -20,9 +20,15 @@ const CONTACT_EMAIL = "baccaytom88@gmail.com";
 const CONTACT_PHONE = "09976432312";
 
 const PH_TIMEZONE = "Asia/Manila";
-const GROK_API_KEY = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
-const GROK_MODEL = process.env.GROK_MODEL || "grok-4.7";
-const GROK_TIMEOUT_MS = 120000;
+
+// AI provider: Groq (free tier). The env var names are kept as GROK_* so your
+// existing Render environment settings still work.
+const AI_PROVIDER = "Groq";
+const AI_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROK_API_KEY =
+  process.env.GROK_API_KEY || process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
+const GROK_MODEL = process.env.GROK_MODEL || "llama-3.3-70b-versatile";
+const GROK_TIMEOUT_MS = 30000;
 const GROK_MAX_TOKENS = Number(process.env.GROK_MAX_TOKENS) || 800;
 
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
@@ -81,7 +87,7 @@ setInterval(() => {
 }, RATE_WINDOW_MS).unref();
 
 // ==========================================
-// DAILY GROK QUOTA
+// DAILY AI QUOTA
 // ==========================================
 
 function getPhilippineDateKey() {
@@ -121,7 +127,7 @@ function getDailyUsage() {
       bonus: Math.min(unused, GROK_MAX_CARRYOVER)
     };
 
-    console.log(`Grok daily counter reset: ${today}`);
+    console.log(`AI daily counter reset: ${today}`);
   }
 
   return grokDailyUsage;
@@ -847,7 +853,7 @@ Suggestion: Start with freeCodeCamp and W3Schools for web development. Try Cisco
       : "Goodbye! Thanks for visiting Jay's portfolio. Take care! 👋";
   }
 
-  // Casual conversation handler runs before Grok
+  // Casual conversation handler runs before the AI call
   const casual = getCasualAnswer(q, tl, history);
   if (casual) return casual;
 
@@ -1057,7 +1063,7 @@ NEUTRAL MODE:
 app.get("/", (req, res) => {
   res.json({
     message: "Jay's portfolio chatbot API is running.",
-    provider: "Grok"
+    provider: AI_PROVIDER
   });
 });
 
@@ -1067,7 +1073,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     message: "Chatbot server is running.",
-    provider: "Grok",
+    provider: AI_PROVIDER,
     apiKeyConfigured: Boolean(GROK_API_KEY),
     grokDailyLimit: getGrokLimitToday(),
     grokBaseDailyLimit: GROK_DAILY_LIMIT,
@@ -1104,7 +1110,7 @@ app.post("/chat", rateLimit, async (req, res) => {
     const mode = detectMode(cleanMessage, normalizedMessage, history);
     const tagalog = isTagalog(normalizedMessage);
 
-    // 1. Local answers first. These do not consume Grok quota.
+    // 1. Local answers first. These do not consume AI quota.
     const localAnswer = getLocalAnswer(cleanMessage, history);
 
     if (localAnswer) {
@@ -1126,7 +1132,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       if (cached) {
         return res.json({
           answer: cached,
-          source: "grok",
+          source: "ai",
           cached: true,
           mode
         });
@@ -1135,7 +1141,7 @@ app.post("/chat", rateLimit, async (req, res) => {
 
     // 3. API key check
     if (!GROK_API_KEY) {
-      console.error("Missing Grok API key.");
+      console.error("Missing AI API key.");
       return respondFallback(res, mode, tagalog, "no_key");
     }
 
@@ -1184,23 +1190,21 @@ app.post("/chat", rateLimit, async (req, res) => {
     ipUsage.attempts++;
 
     console.log(
-      `Grok attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode}`
+      `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode}`
     );
 
-    // 7. Call Grok Responses API
-    const response = await fetch("https://api.x.ai/v1/responses", {
+    // 7. Call Groq Chat Completions API (free tier)
+    const response = await fetch(AI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROK_API_KEY}`,
-        "x-grok-conv-id": "jay-portfolio-chatbot"
+        "Authorization": `Bearer ${GROK_API_KEY}`
       },
       body: JSON.stringify({
         model: GROK_MODEL,
-        input: messages,
+        messages,
         temperature: mode === "professional" ? 0.4 : 0.7,
-        max_output_tokens: GROK_MAX_TOKENS,
-        store: false
+        max_tokens: GROK_MAX_TOKENS
       }),
       signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
     });
@@ -1213,7 +1217,7 @@ app.post("/chat", rateLimit, async (req, res) => {
         data.message ||
         `HTTP ${response.status}`;
 
-      console.error("Grok API error:", response.status, errorMessage);
+      console.error("AI API error:", response.status, errorMessage);
 
       const limited =
         response.status === 429 ||
@@ -1228,24 +1232,10 @@ app.post("/chat", rateLimit, async (req, res) => {
     }
 
     // 8. Extract response text
-    let answer = "";
-
-    if (Array.isArray(data.output)) {
-      answer = data.output
-        .filter(item => item.type === "message")
-        .flatMap(item => item.content || [])
-        .filter(part => part.type === "output_text")
-        .map(part => part.text || "")
-        .join("\n")
-        .trim();
-    }
-
-    if (!answer && typeof data.output_text === "string") {
-      answer = data.output_text.trim();
-    }
+    const answer = (data.choices?.[0]?.message?.content || "").trim();
 
     if (!answer) {
-      console.error("Grok returned an empty response:", JSON.stringify(data));
+      console.error("AI returned an empty response:", JSON.stringify(data));
       return respondFallback(res, mode, tagalog, "empty_response");
     }
 
@@ -1255,7 +1245,7 @@ app.post("/chat", rateLimit, async (req, res) => {
 
     return res.json({
       answer,
-      source: "grok",
+      source: "ai",
       model: GROK_MODEL,
       mode
     });
@@ -1282,11 +1272,11 @@ app.post("/chat", rateLimit, async (req, res) => {
 // ==========================================
 
 app.listen(PORT, () => {
-  console.log(`Chatbot server running at http://localhost:${PORT}`);
-  console.log("AI provider: Grok");
-  console.log("Grok API key configured:", Boolean(GROK_API_KEY));
-  console.log(`Grok model: ${GROK_MODEL}`);
-  console.log(`Grok daily API attempt limit: ${GROK_DAILY_LIMIT}`);
-  console.log(`Grok per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
+  console.log(`Chatbot server running on port ${PORT}`);
+  console.log(`AI provider: ${AI_PROVIDER}`);
+  console.log("AI API key configured:", Boolean(GROK_API_KEY));
+  console.log(`AI model: ${GROK_MODEL}`);
+  console.log(`Daily API attempt limit: ${GROK_DAILY_LIMIT}`);
+  console.log(`Per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
   console.log(`Daily counter resets at midnight ${PH_TIMEZONE}.`);
 });
