@@ -1,4 +1,3 @@
-
 require("dotenv").config({
   path: require("path").join(__dirname, ".env")
 });
@@ -73,7 +72,8 @@ setInterval(() => {
 // GROK DAILY LIMIT
 // ==========================================
 
-const GROK_DAILY_LIMIT = 200;
+// Pwede mong palitan sa Render Environment: GROK_DAILY_LIMIT
+const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
 const PHILIPPINE_TIME_ZONE = "Asia/Manila";
 
 function getPhilippineDateKey() {
@@ -122,21 +122,6 @@ function getRemainingGrokAttempts() {
   );
 }
 
-function grokDailyLimitReached(res) {
-  const usage = getDailyUsage();
-
-  return res.status(429).json({
-    error:
-      "Naabot na ang daily Grok attempt limit na 200. " +
-      "Subukan ulit bukas. Gagana pa rin ang local replies.",
-    source: "daily_limit",
-    dailyLimit: GROK_DAILY_LIMIT,
-    attemptsUsed: usage.attempts,
-    attemptsRemaining: 0,
-    resetTimeZone: PHILIPPINE_TIME_ZONE
-  });
-}
-
 setInterval(() => {
   getDailyUsage();
 }, 60 * 1000).unref();
@@ -147,6 +132,8 @@ setInterval(() => {
 
 const FACEBOOK_URL = "https://www.facebook.com/chris.tian.727095/";
 const INSTAGRAM_URL = "https://www.instagram.com/christian21217/";
+const CONTACT_EMAIL = "baccaytom88@gmail.com";
+const CONTACT_PHONE = "09976432312";
 
 function randomReply(replies) {
   return replies[Math.floor(Math.random() * replies.length)];
@@ -227,13 +214,26 @@ TECHNICAL SKILLS:
 - Beginner-level Figma and Canva for UI/UX and visual design.
 - Do not claim advanced expertise in unverified technologies.
 
-SOCIAL MEDIA:
+SOCIAL MEDIA AND CONTACT:
 - Facebook: ${FACEBOOK_URL}
 - Instagram: ${INSTAGRAM_URL}
+- Email: ${CONTACT_EMAIL}
+- Phone: ${CONTACT_PHONE}
 - If asked for Jay's Facebook, FB, Instagram, IG, or social media accounts,
   provide the exact links above.
+- Share the email and phone number only in professional mode (job offers,
+  interviews, or direct contact requests). Never share them in playful or
+  casual chat.
+- Use only these exact contact details and never invent other ones.
 - These are Jay's accounts, not the crush's accounts.
 - Harmless jokes about following his profile are okay.
+
+PEOPLE JAY MENTIONED:
+- Eliza Garro Calumpit is a teacher who, according to Jay, passed the Civil Service Exam.
+- Share nothing else about her beyond this. Do not invent other details.
+- Do not share or guess private details (relationships, personal life) about
+  Jay's friends, teachers, or other real people. If asked, politely say that
+  those are theirs to share.
 
 LOVE LIFE:
 - Jay describes himself as shy (mahiyain).
@@ -348,10 +348,11 @@ CURRENT CONVERSATION MODE: PROFESSIONAL (this overrides the humor rules above)
   If asked, politely say you would rather keep the conversation professional.
 - Use "po" naturally if the visitor writes in Filipino.
 - For job offers or interviews: thank them, briefly summarize Jay's verified
-  background, and invite them to contact Jay directly through the Facebook and
-  Instagram links above. Ask for the position, company, location, and schedule.
-- Never invent salary, availability, start dates, email addresses, phone numbers,
-  or commitments. Say Jay will discuss those details directly.
+  background, and invite them to contact Jay directly through the Facebook,
+  Instagram, email, or phone listed above. Ask for the position, company,
+  location, and schedule.
+- Never invent salary, availability, start dates, or other contact details.
+  Say Jay will discuss those details directly.
 - ${languageRule}
 `;
   }
@@ -362,6 +363,7 @@ CURRENT CONVERSATION MODE: PLAYFUL
 - The visitor is joking or being casual. Match their energy with friendly humor.
 - Keep jokes kind and never repeat the previous joke.
 - Still stay accurate about Jay's profile.
+- Do not share Jay's email or phone number in this mode.
 - ${languageRule}
 `;
   }
@@ -381,7 +383,7 @@ CURRENT CONVERSATION MODE: NEUTRAL
 // ==========================================
 
 function contactBlock() {
-  return `Facebook: ${FACEBOOK_URL}\nInstagram: ${INSTAGRAM_URL}`;
+  return `Facebook: ${FACEBOOK_URL}\nInstagram: ${INSTAGRAM_URL}\nEmail: ${CONTACT_EMAIL}\nPhone: ${CONTACT_PHONE}`;
 }
 
 function getProfessionalAnswer(q, tl) {
@@ -399,8 +401,8 @@ function getProfessionalAnswer(q, tl) {
 
   if (CONTACT_RE.test(q)) {
     return tl
-      ? `Maaari po ninyong makontak si Jay sa mga account na ito:\n\n${contactBlock()}\n\nWala po akong ibang contact details na maibibigay mula rito.`
-      : `You can reach Jay through the accounts below:\n\n${contactBlock()}\n\nI don't have other contact details to share here.`;
+      ? `Maaari po ninyong makontak si Jay sa mga detalyeng ito:\n\n${contactBlock()}`
+      : `You can reach Jay through the details below:\n\n${contactBlock()}`;
   }
 
   return tl
@@ -686,6 +688,139 @@ function getLocalAnswer(message, history = []) {
 }
 
 // ==========================================
+// VIBE FALLBACK (kapag tapos na ang quota o nag-error ang Grok)
+// ==========================================
+
+// Sumasagot pa rin ang chatbot sa vibe, at itinuturo ang mga tanong
+// na kaya pa niyang sagutin kahit walang Grok.
+function getVibeFallback(mode, tl, reason) {
+  const limited = reason === "daily_limit" || reason === "ip_limit";
+
+  if (mode === "professional") {
+    return tl
+      ? `Pasensya na po, hindi ko po masasagot nang detalyado ang tanong na iyan sa ngayon. Matutulungan ko po kayo sa skills, experience, education, at contact details ni Jay. Para po sa mas detalyadong usapan, maaari po ninyo siyang makontak nang direkta:\n\n${contactBlock()}`
+      : `I'm sorry, I can't answer that question in detail right now. I can still help with Jay's skills, experience, education, and contact details. For a more detailed discussion, please contact him directly:\n\n${contactBlock()}`;
+  }
+
+  if (mode === "playful") {
+    if (limited) {
+      return randomReply([
+        "HAHAHA! 😭 Napagod na ang AI brain ko for today, pero andito pa rin ako! Itanong mo sa'kin ang skills, OJT, education, o social media ni Jay at sasagot ako agad. 😎",
+        "AY! 😂 Ubos na ang AI energy ko ngayong araw, parang battery na 1% na lang. 🔋 Pero kaya ko pa rin sagutin ang tungkol sa skills, internship, at education ni Jay! Subukan mo!",
+        "CHAROT! 🤣 Nag-power nap muna ang utak ko for today. Pero huwag kang mag-alala, tanungin mo lang ako tungkol sa skills, OJT, o social media ni Jay at kaya ko pa yan! 👀"
+      ]);
+    }
+
+    return randomReply([
+      "HAHAHA! 😭 Nag-lag ang utak ko saglit, parang Wi-Fi sa tabi ng microwave. 📶 Subukan mo ulit mamaya, o itanong mo muna ang skills, OJT, o education ni Jay!",
+      "AY SHET HAHAHA! 😂 Na-blanko ako bigla, parang nakalimutan ang assignment. Tanong ka ulit mamaya, o itanong mo muna ang tungkol sa skills at internship ni Jay! 😎",
+      "Uy sorry! 😅 Na-seen-zone ako ng server saglit. Subukan mo ulit mamaya, o itanong mo muna kung ano ang skills o social media ni Jay!"
+    ]);
+  }
+
+  // neutral
+  return tl
+    ? "Pasensya na, hindi ko masasagot nang maayos ang tanong na iyan sa ngayon. Subukan mo ulit mamaya, o itanong mo muna ang tungkol sa skills, internship, education, o social media ni Jay at masasagot ko agad. 😊"
+    : "Sorry, I can't answer that properly right now. Please try again later, or ask me about Jay's skills, internship, education, or social media and I can answer right away. 😊";
+}
+
+function respondFallback(res, mode, tagalog, reason) {
+  return res.json({
+    answer: getVibeFallback(mode, tagalog, reason),
+    source: "local_fallback",
+    reason,
+    mode
+  });
+}
+
+// ==========================================
+// QUOTA SAVERS (cache, per-IP limit, filler replies)
+// ==========================================
+
+// ---------- Answer cache ----------
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const CACHE_MAX_ENTRIES = 500;
+const answerCache = new Map();
+
+function getCachedAnswer(key) {
+  const entry = answerCache.get(key);
+  if (!entry) return null;
+
+  if (Date.now() > entry.expires) {
+    answerCache.delete(key);
+    return null;
+  }
+
+  return entry.answer;
+}
+
+function setCachedAnswer(key, answer) {
+  if (answerCache.size >= CACHE_MAX_ENTRIES) {
+    answerCache.delete(answerCache.keys().next().value);
+  }
+
+  answerCache.set(key, {
+    answer,
+    expires: Date.now() + CACHE_TTL_MS
+  });
+}
+
+// ---------- Per-IP daily Grok limit ----------
+// Pwede mong palitan sa Render Environment: GROK_PER_IP_DAILY_LIMIT
+const GROK_PER_IP_DAILY_LIMIT =
+  Number(process.env.GROK_PER_IP_DAILY_LIMIT) || 30;
+const ipGrokUsage = new Map();
+
+function getIpGrokUsage(ip) {
+  const today = getPhilippineDateKey();
+  let entry = ipGrokUsage.get(ip);
+
+  if (!entry || entry.date !== today) {
+    entry = { date: today, attempts: 0 };
+    ipGrokUsage.set(ip, entry);
+  }
+
+  return entry;
+}
+
+setInterval(() => {
+  const today = getPhilippineDateKey();
+
+  for (const [ip, entry] of ipGrokUsage) {
+    if (entry.date !== today) ipGrokUsage.delete(ip);
+  }
+}, 60 * 60 * 1000).unref();
+
+// ---------- Filler messages answered locally ----------
+const FILLER_RE =
+  /^(ok|okay|okey|k|sige|ge|ah+|oh+|hm+|hmm+|wow|nice|cool|galing|talaga|really|weh|haha+|hehe+|hihi+|lol|wala|ayos|aww+|i see|got it)( po| na| lang)?$/;
+
+function getFillerAnswer(q, mode, tl) {
+  // q is empty when the message was only emojis/symbols
+  if (q && !FILLER_RE.test(q)) return null;
+
+  if (mode === "professional") {
+    return tl
+      ? "Sige po! May iba pa po ba kayong gustong malaman tungkol kay Jay?"
+      : "Sure! Is there anything else you'd like to know about Jay?";
+  }
+
+  return randomReply([
+    "HAHAHA! 😄 May gusto ka pa bang itanong tungkol kay Jay?",
+    "Noted! 👍 Tanong ka lang kung may gusto ka pang malaman.",
+    "Sige sige! 😎 Andito lang ako kung may tanong ka.",
+    "Hmmmm, interesting reaction yan ha. 👀 May follow-up ka ba?"
+  ]);
+}
+
+// ---------- Token savers ----------
+const GROK_HISTORY_LIMIT = 4;
+const GROK_HISTORY_CHARS = 600;
+const GROK_MAX_TOKENS = 400;
+const BREVITY_RULE =
+  "\nKeep replies concise (about 100 words or less) unless the visitor asks for details.";
+
+// ==========================================
 // GROK CONFIGURATION
 // ==========================================
 
@@ -716,6 +851,7 @@ app.get("/health", (req, res) => {
     provider: "Grok",
     apiKeyConfigured: Boolean(GROK_API_KEY),
     grokDailyLimit: GROK_DAILY_LIMIT,
+    grokPerIpDailyLimit: GROK_PER_IP_DAILY_LIMIT,
     grokAttemptsUsed: usage.attempts,
     grokAttemptsRemaining: getRemainingGrokAttempts(),
     resetTimeZone: PHILIPPINE_TIME_ZONE
@@ -746,7 +882,7 @@ app.post("/chat", rateLimit, async (req, res) => {
     const mode = detectMode(cleanMessage, normalizedMessage, history);
     const tagalog = isTagalog(normalizedMessage);
 
-    // Local replies do not use Grok API attempts.
+    // 1) Local replies do not use Grok API attempts.
     const localAnswer = getLocalAnswer(cleanMessage, history);
 
     if (localAnswer) {
@@ -757,26 +893,66 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    if (!GROK_API_KEY) {
-      return res.status(500).json({
-        error: "Missing Grok API key. Add GROK_API_KEY to your .env file or hosting environment variables."
+    // 2) Filler messages ("ok", "wow", "haha") are answered locally too.
+    const fillerAnswer = getFillerAnswer(normalizedMessage, mode, tagalog);
+
+    if (fillerAnswer) {
+      return res.json({
+        answer: fillerAnswer,
+        source: "local",
+        mode
       });
     }
 
+    // 3) Cache: only for first questions (no history) and non-playful mode.
+    const hasHistory = Array.isArray(history) && history.length > 0;
+    const canCache = !hasHistory && mode !== "playful";
+    const cacheKey = `${mode}|${normalizedMessage}`;
+
+    if (canCache) {
+      const cached = getCachedAnswer(cacheKey);
+
+      if (cached) {
+        return res.json({
+          answer: cached,
+          source: "grok",
+          cached: true,
+          mode
+        });
+      }
+    }
+
+    if (!GROK_API_KEY) {
+      console.error("Missing Grok API key. Using vibe fallback.");
+      return respondFallback(res, mode, tagalog, "no_key");
+    }
+
+    // 4) Global daily limit: sumasagot pa rin sa vibe kahit tapos na.
     if (getRemainingGrokAttempts() <= 0) {
-      return grokDailyLimitReached(res);
+      return respondFallback(res, mode, tagalog, "daily_limit");
+    }
+
+    // 5) Per-IP daily limit so one visitor cannot use up the whole quota.
+    const ipUsage = getIpGrokUsage(req.ip);
+
+    if (ipUsage.attempts >= GROK_PER_IP_DAILY_LIMIT) {
+      return respondFallback(res, mode, tagalog, "ip_limit");
     }
 
     // Convert conversation history to the format expected by Grok.
     const messages = [
       {
         role: "system",
-        content: SYSTEM_PROMPT + "\n" + buildModeInstruction(mode, tagalog)
+        content:
+          SYSTEM_PROMPT +
+          "\n" +
+          buildModeInstruction(mode, tagalog) +
+          BREVITY_RULE
       }
     ];
 
     if (Array.isArray(history)) {
-      for (const item of history.slice(-6)) {
+      for (const item of history.slice(-GROK_HISTORY_LIMIT)) {
         if (
           !item ||
           typeof item.text !== "string" ||
@@ -796,7 +972,7 @@ app.post("/chat", rateLimit, async (req, res) => {
 
         messages.push({
           role,
-          content: item.text.trim().slice(0, 1200)
+          content: item.text.trim().slice(0, GROK_HISTORY_CHARS)
         });
       }
     }
@@ -815,11 +991,12 @@ app.post("/chat", rateLimit, async (req, res) => {
       const usage = getDailyUsage();
 
       if (usage.attempts >= GROK_DAILY_LIMIT) {
-        return grokDailyLimitReached(res);
+        return respondFallback(res, mode, tagalog, "daily_limit");
       }
 
-      // Count one attempt for every Grok API request.
+      // Count one attempt for every Grok API request (global and per IP).
       usage.attempts++;
+      ipUsage.attempts++;
 
       console.log(
         `Grok API attempt ${usage.attempts}/${GROK_DAILY_LIMIT} using ${model} (mode: ${mode})`
@@ -832,13 +1009,15 @@ app.post("/chat", rateLimit, async (req, res) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${GROK_API_KEY}`
+              "Authorization": `Bearer ${GROK_API_KEY}`,
+              // Stable id so xAI can reuse the cached system prompt.
+              "x-grok-conv-id": "jay-portfolio-chatbot"
             },
             body: JSON.stringify({
               model,
               messages,
               temperature,
-              max_tokens: 400
+              max_tokens: GROK_MAX_TOKENS
             }),
             signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
           }
@@ -880,6 +1059,8 @@ app.post("/chat", rateLimit, async (req, res) => {
         if (answer) {
           console.log("Chat answered using model:", model);
 
+          if (canCache) setCachedAnswer(cacheKey, answer);
+
           return res.json({
             answer,
             source: "grok",
@@ -902,24 +1083,24 @@ app.post("/chat", rateLimit, async (req, res) => {
       }
     }
 
+    // 6) Nag-error ang Grok (rate limit, naubos na credits, timeout, atbp.):
+    //    sumasagot pa rin sa vibe imbes na magpakita ng error.
     if (getRemainingGrokAttempts() <= 0) {
-      return grokDailyLimitReached(res);
+      return respondFallback(res, mode, tagalog, "daily_limit");
     }
 
-    if (
+    const grokLimited =
       lastStatus === 429 ||
-      /quota|rate limit|resource exhausted/i.test(lastError)
-    ) {
-      return res.status(429).json({
-        error: "Naabot na yata ang Grok API rate limit o usage limit ngayon. Subukan ulit mamaya. Gagana pa rin ang local replies.",
-        source: "grok_limit"
-      });
-    }
+      /quota|rate limit|resource exhausted|credit/i.test(lastError);
 
-    return res.status(502).json({
-      error: `Grok did not return a response. ${lastError}`,
-      source: "grok_error"
-    });
+    console.error("Using vibe fallback because Grok failed:", lastError);
+
+    return respondFallback(
+      res,
+      mode,
+      tagalog,
+      grokLimited ? "grok_limit" : "grok_error"
+    );
 
   } catch (error) {
     console.error("Chat server error:", error.message);
@@ -939,5 +1120,6 @@ app.listen(PORT, () => {
   console.log("AI provider: Grok");
   console.log("Grok API key configured:", Boolean(GROK_API_KEY));
   console.log(`Grok daily API attempt limit: ${GROK_DAILY_LIMIT}`);
+  console.log(`Grok per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
   console.log(`Daily counter resets at midnight ${PHILIPPINE_TIME_ZONE}.`);
 });
