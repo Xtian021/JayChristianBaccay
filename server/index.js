@@ -1,3 +1,4 @@
+
 require("dotenv").config({
   path: require("path").join(__dirname, ".env")
 });
@@ -322,10 +323,6 @@ function tesdaForPrompt() {
   return TESDA_CLASSMATES.map(name => `  - ${name}`).join("\n");
 }
 
-// ==========================================
-// SYSTEM PROMPT
-// ==========================================
-
 const SYSTEM_PROMPT = `
 You are the personal portfolio assistant for Jay Christian Baccay.
 You are Jay's chatbot, NOT Jay himself.
@@ -605,50 +602,6 @@ function proDeflect(tl) {
 }
 
 // ==========================================
-// LOCAL RECOMMENDATIONS - NO GROK TOKENS
-// ==========================================
-
-function getLocalRecommendation(q, tl) {
-  // IT learning recommendations
-  if (
-    /\b(what should i learn|what to learn|recommend.*learn|suggest.*learn|ano dapat aralin|ano ang dapat kong aralin|anong dapat aralin|ano pa ang pwede aralin|ano pa dapat kong matutunan|suggestion.*learning|recommendation.*learning)\b/.test(q)
-  ) {
-    return tl
-      ? "Kung nagsisimula ka pa lang sa IT, ito ang magandang learning path:\n\n1. HTML, CSS, at JavaScript – para sa web development.\n2. Computer Hardware – para sa troubleshooting.\n3. Networking Fundamentals – LAN, Wi-Fi, IP address, at basic networking.\n4. Windows Installation – installation at configuration.\n5. Database Fundamentals – basic SQL at database concepts.\n6. Data Analytics – Excel, Python, at data visualization.\n\nTip: Isa-isahin mo lang. Mas magandang may actual projects ka habang nag-aaral. 😊"
-      : "If you're just starting in IT, here's a practical learning path:\n\n1. HTML, CSS, and JavaScript – for web development.\n2. Computer Hardware – for troubleshooting.\n3. Networking Fundamentals – LAN, Wi-Fi, IP addresses, and basic networking.\n4. Windows Installation – installation and configuration.\n5. Database Fundamentals – basic SQL and database concepts.\n6. Data Analytics – Excel, Python, and data visualization.\n\nTip: Learn one topic at a time and build small projects as you go.";
-  }
-
-  // IT career recommendations
-  if (
-    /\b(recommend.*it job|suggest.*it job|what it job|which it career|best it career|ano magandang it job|anong trabaho.*it|anong position.*it|career recommendation|job recommendation|recommend.*career|suggest.*career)\b/.test(q)
-  ) {
-    return tl
-      ? "Para sa beginner sa IT, magandang pagpilian ang mga ito:\n\n- IT Support – computer, Windows, at printer troubleshooting.\n- Data Encoder – data entry, verification, at record management.\n- Junior Web Developer – HTML, CSS, at JavaScript.\n- Technical Support – basic troubleshooting at user assistance.\n- Data Analyst Trainee – Excel, Python, at data analytics.\n\nPiliin ang role na tugma sa skills at experience mo. Hindi kailangang expert agad; mahalaga ang willingness to learn."
-      : "For someone starting in IT, these are good entry-level options:\n\n- IT Support – computer, Windows, and printer troubleshooting.\n- Data Encoder – data entry, verification, and record management.\n- Junior Web Developer – HTML, CSS, and JavaScript.\n- Technical Support – basic troubleshooting and user assistance.\n- Data Analyst Trainee – Excel, Python, and data analytics.\n\nChoose a role that matches your current skills. You don't need to be an expert to start; willingness to learn matters.";
-  }
-
-  // Website and system project recommendations
-  if (
-    /\b(project ideas|project suggestion|suggest.*project|recommend.*project|what project|anong project|ano magandang project|website idea|system idea|system recommendation)\b/.test(q)
-  ) {
-    return tl
-      ? "Narito ang ilang beginner-friendly IT project ideas:\n\n1. Personal Portfolio Website\n2. Student Information Management System\n3. Inventory Management System\n4. Attendance Monitoring System\n5. Job Listing Website\n6. Simple Analytics Dashboard\n7. Computer Troubleshooting Guide Website\n\nTip: Gumamit ng HTML, CSS, JavaScript, at PHP/MySQL kung gusto mong gumawa ng full web-based system."
-      : "Here are some beginner-friendly IT project ideas:\n\n1. Personal Portfolio Website\n2. Student Information Management System\n3. Inventory Management System\n4. Attendance Monitoring System\n5. Job Listing Website\n6. Simple Analytics Dashboard\n7. Computer Troubleshooting Guide Website\n\nTip: You can use HTML, CSS, JavaScript, and PHP/MySQL to build a complete web-based system.";
-  }
-
-  // General recommendation request
-  if (
-    /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|any advice|give me advice|what do you recommend|what do you suggest|may ma recommend|may maire recommend|ano ma suggest|ano ma recommend|suggestion mo)\b/.test(q)
-  ) {
-    return tl
-      ? "Sure! 😊 Anong klaseng recommendation ang kailangan mo—IT learning, career/job, website project, programming, o personal advice? Sabihin mo lang para mas maitugma ko ang suggestion."
-      : "Sure! 😊 What kind of recommendation are you looking for—IT learning, career/job, website projects, programming, or general advice? Tell me the topic so I can give you a more relevant suggestion.";
-  }
-
-  return null;
-}
-
-// ==========================================
 // LOCAL ANSWERS
 // ==========================================
 
@@ -658,30 +611,102 @@ function getLocalAnswer(message, history = []) {
   const pro = mode === "professional";
   const tl = isTagalog(q);
 
-  // Recommendations are handled locally. No Grok API request.
-  if (!pro) {
-    const recommendation = getLocalRecommendation(q, tl);
+  // ------------------------------------------
+  // NEW: SUGGESTED QUESTIONS
+  // ------------------------------------------
 
-    if (recommendation) return recommendation;
-  }
-
-  // Common suggested questions and chat starters
   if (
-    /^(lets chat|lets talk|let us chat|hi can we chat|hi lets chat|hello can we chat)$/.test(q)
+    /\b(what can i ask|what should i ask|what can i ask you|what should i ask you|suggested questions|show questions|show me questions|give me questions|what do you know about jay|what can you tell me about jay|what can you help me with|ano pwede itanong|ano ang pwede itanong|ano pwede kong itanong|anong pwede itanong|mga suggested questions|suggest questions)\b/.test(q)
   ) {
-    return randomReply([
-      "Hello! 👋 Welcome sa portfolio ni Jay! I'm happy to chat with you. You can ask me about his IT skills, internship experience, education, projects, or career goals. 😊",
-      "Hi there! 😎 Welcome! Ako ang AI assistant ni Jay. Ano ang gusto mong malaman tungkol sa kanya? Pwede tayong mag-usap tungkol sa kanyang skills, OJT, projects, at career.",
-      "Hey! 👋 Nice to meet you! Feel free to explore Jay's portfolio. Ask me anything about his education, technical skills, internship, and projects!"
-    ]);
+    return tl
+      ? `Marami kang puwedeng itanong tungkol kay Jay! 😊\n\n**Mga puwede mong itanong:**\n- Sino si Jay Christian Baccay?\n- Ano ang educational background niya?\n- Ano ang technical skills niya?\n- Ano ang experience niya sa PSA?\n- Anong trabaho ang hinahanap niya?\n- Marunong ba siyang gumawa ng website o system?\n- Ano ang alam niya sa Data Analytics?\n- Anong websites ang puwedeng gamitin para matuto ng IT?\n- Ano ang hobbies o interests niya?\n- Paano siya makokontak?\n\nPwede ka ring magtanong ng casual questions. Basta huwag lang masyadong detective sa crush niya. HAHAHA! 😂`
+      : `You can ask me many things about Jay! 😊\n\n**Suggested questions:**\n- Who is Jay Christian Baccay?\n- What is his educational background?\n- What are his technical skills?\n- What was his experience at PSA?\n- What kind of jobs is he looking for?\n- Can he build websites or systems?\n- What does he know about Data Analytics?\n- What websites can beginners use to learn IT?\n- What are his interests?\n- How can I contact him?\n\nYou can also ask casual questions. Just don't turn into a detective about his crush. 😂`;
   }
 
-  if (/^(career goals?|what are your career goals|what are jays career goals)$/.test(q)) {
-    return "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
+  // ------------------------------------------
+  // NEW: IT LEARNING WEBSITE RECOMMENDATIONS
+  // ------------------------------------------
+
+  if (
+    /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|learning website|learning websites|website to learn|websites to learn|site to learn|sites to learn|where can i learn|where to learn|free courses|free course|online course|online courses|learn it|learn programming|learn coding|study it|study programming|beginner resources|learning resources|resources for beginners|it learning|it courses|aralin ang it|matuto ng it|pag aralan ang it|pag aralan ang programming|website na pang aral|site na pang aral)\b/.test(q) &&
+    /\b(it|information technology|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|newbie|learning|learn|study|course|courses|website|websites|resource|resources|free|aral|matuto|pag aralan)\b/.test(q)
+  ) {
+    const resources = [
+      {
+        name: "Cisco Networking Academy",
+        url: "https://www.netacad.com/",
+        detail: tl
+          ? "Maganda para sa networking, cybersecurity, at IT fundamentals. May mga libreng self-paced courses."
+          : "Great for networking, cybersecurity, and IT fundamentals. Offers free self-paced courses."
+      },
+      {
+        name: "freeCodeCamp",
+        url: "https://www.freecodecamp.org/",
+        detail: tl
+          ? "Para sa HTML, CSS, JavaScript, web development, at programming. May hands-on exercises."
+          : "Learn HTML, CSS, JavaScript, web development, and programming through hands-on exercises."
+      },
+      {
+        name: "W3Schools",
+        url: "https://www.w3schools.com/",
+        detail: tl
+          ? "Beginner-friendly tutorials para sa HTML, CSS, JavaScript, PHP, SQL, at iba pa."
+          : "Beginner-friendly tutorials for HTML, CSS, JavaScript, PHP, SQL, and more."
+      },
+      {
+        name: "Microsoft Learn",
+        url: "https://learn.microsoft.com/training/",
+        detail: tl
+          ? "Para sa Windows, Microsoft technologies, Azure, at IT-related learning paths."
+          : "Learn about Windows, Microsoft technologies, Azure, and IT-related topics."
+      },
+      {
+        name: "MDN Web Docs",
+        url: "https://developer.mozilla.org/",
+        detail: tl
+          ? "Mas detalyadong documentation at guides para sa HTML, CSS, JavaScript, at web development."
+          : "Detailed documentation and guides for HTML, CSS, JavaScript, and web development."
+      },
+      {
+        name: "Khan Academy",
+        url: "https://www.khanacademy.org/computing",
+        detail: tl
+          ? "May beginner lessons tungkol sa computing, programming, at computer science."
+          : "Beginner lessons covering computing, programming, and computer science."
+      }
+    ];
+
+    const resourceList = resources
+      .map(item => `**${item.name}**\n${item.url}\n${item.detail}`)
+      .join("\n\n");
+
+    return tl
+      ? `Oo naman! 😊 Kung beginner ka pa lang sa IT, ito ang mga websites na puwede mong gamitin. Marami rito ay may libreng learning materials:\n\n${resourceList}\n\n**Suggestion ko:** Kung gusto mong matuto gumawa ng website, magsimula sa HTML, CSS, at JavaScript gamit ang freeCodeCamp at W3Schools. Kung networking o IT Support naman ang goal mo, subukan ang Cisco Networking Academy at Microsoft Learn.\n\nDahan-dahan lang sa pag-aaral. Practice ang pinakaimportante! 💻`
+      : `Absolutely! 😊 If you're just starting in IT, these websites are good places to learn. Many offer free learning materials:\n\n${resourceList}\n\n**My recommendation:** If you want to build websites, start with HTML, CSS, and JavaScript using freeCodeCamp and W3Schools. If you're interested in networking or IT Support, try Cisco Networking Academy and Microsoft Learn.\n\nTake it one step at a time. Consistent practice is what matters most! 💻`;
   }
 
-  if (/^(contact jay|how can i contact jay|how to contact jay)$/.test(q)) {
-    return `You can reach Jay through the details below:\n\n${contactBlock()}`;
+  // "Let's chat!" (maikling message lang para hindi ma-hijack ang ibang tanong)
+  if (
+    q.split(" ").length <= 6 &&
+    /\b(lets chat|let us chat|lets talk|let us talk|can we chat|just chat|chat tayo|usap tayo|kwentuhan tayo)\b/.test(q)
+  ) {
+    return tl
+      ? "Magandang araw po! Welcome sa portfolio ni Jay. Handa po akong tumulong. Maaari po kayong magtanong tungkol sa skills, internship experience, education, career goals, o kung paano makontak si Jay."
+      : "Hello, and welcome to Jay's portfolio! I'm happy to help. You can ask me about Jay's skills, internship experience, education, career goals, or how to contact him.";
+  }
+
+  // "Career goals"
+  if (/\b(career goals?|career objectives?)\b/.test(q)) {
+    return tl
+      ? "Naghahanap po si Jay ng entry-level opportunities gaya ng IT Support, Data Encoder, at iba pang computer-based roles. Interesado rin po siya sa UI/UX design at patuloy na pag-develop ng kanyang technical skills."
+      : "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
+  }
+
+  // "Contact Jay"
+  if (/\b(contact jay|reach jay|get in touch with jay)\b/.test(q)) {
+    return tl
+      ? `Maaari po ninyong makontak si Jay sa mga detalyeng ito:\n\n${contactBlock()}`
+      : `You can reach Jay through the details below:\n\n${contactBlock()}`;
   }
 
   if (pro && PRO_RE.test(q)) {
@@ -705,7 +730,7 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Lerry
+  // Lerry: sasagot lang kapag tinanong si Lerry
   if (/\b(lerry|fortuno)\b/.test(q)) {
     if (pro) return proDeflect(tl);
 
@@ -752,7 +777,7 @@ function getLocalAnswer(message, history = []) {
       : `Here are Jay's classmates in TESDA Data Analytics III:\n\n${lines}`;
   }
 
-  // TESDA: specific classmate
+  // TESDA: asking about one specific classmate
   const tesdaMatches = findTesdaClassmates(q);
 
   if (tesdaMatches.length > 0 && tesdaMatches.length <= 3) {
@@ -802,7 +827,9 @@ function getLocalAnswer(message, history = []) {
   }
 
   // Friends list
-  if (/\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)) {
+  if (
+    /\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)
+  ) {
     if (pro) return proDeflect(tl);
 
     const lines = FRIENDS.map(friend => friendListLine(friend, tl)).join("\n");
@@ -1027,7 +1054,6 @@ function getLocalAnswer(message, history = []) {
     ]);
   }
 
-  // Unknown questions are handled by Grok.
   return null;
 }
 
@@ -1078,7 +1104,6 @@ function respondFallback(res, mode, tagalog, reason) {
 // QUOTA SAVERS
 // ==========================================
 
-// Answer cache
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 500;
 const answerCache = new Map();
@@ -1106,10 +1131,8 @@ function setCachedAnswer(key, answer) {
   });
 }
 
-// Per-IP daily Grok limit
 const GROK_PER_IP_DAILY_LIMIT =
   Number(process.env.GROK_PER_IP_DAILY_LIMIT) || 30;
-
 const ipGrokUsage = new Map();
 
 function getIpGrokUsage(ip) {
@@ -1132,7 +1155,10 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000).unref();
 
-// Filler messages answered locally
+// ==========================================
+// FILLER MESSAGES
+// ==========================================
+
 const FILLER_RE =
   /^(ok|okay|okey|k|sige|ge|ah+|oh+|hm+|hmm+|wow|nice|cool|galing|talaga|really|weh|haha+|hehe+|hihi+|lol|wala|ayos|aww+|i see|got it)( po| na| lang)?$/;
 
@@ -1153,11 +1179,13 @@ function getFillerAnswer(q, mode, tl) {
   ]);
 }
 
-// Token savers
+// ==========================================
+// TOKEN SAVERS
+// ==========================================
+
 const GROK_HISTORY_LIMIT = 4;
 const GROK_HISTORY_CHARS = 600;
 const GROK_MAX_TOKENS = 400;
-
 const BREVITY_RULE =
   "\nKeep replies concise (about 100 words or less) unless the visitor asks for details.";
 
@@ -1222,7 +1250,7 @@ app.post("/chat", rateLimit, async (req, res) => {
     const mode = detectMode(cleanMessage, normalizedMessage, history);
     const tagalog = isTagalog(normalizedMessage);
 
-    // 1. Local answers: no Grok API usage.
+    // 1) Local replies do not use Grok API attempts.
     const localAnswer = getLocalAnswer(cleanMessage, history);
 
     if (localAnswer) {
@@ -1233,7 +1261,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 2. Filler messages: no Grok API usage.
+    // 2) Filler messages are answered locally.
     const fillerAnswer = getFillerAnswer(normalizedMessage, mode, tagalog);
 
     if (fillerAnswer) {
@@ -1244,7 +1272,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 3. Cache: first questions only, non-playful mode.
+    // 3) Cache: only for first questions and non-playful mode.
     const hasHistory = Array.isArray(history) && history.length > 0;
     const canCache = !hasHistory && mode !== "playful";
     const cacheKey = `${mode}|${normalizedMessage}`;
@@ -1267,19 +1295,18 @@ app.post("/chat", rateLimit, async (req, res) => {
       return respondFallback(res, mode, tagalog, "no_key");
     }
 
-    // 4. Global daily limit.
+    // 4) Global daily limit.
     if (getRemainingGrokAttempts() <= 0) {
       return respondFallback(res, mode, tagalog, "daily_limit");
     }
 
-    // 5. Per-IP daily limit.
+    // 5) Per-IP daily limit.
     const ipUsage = getIpGrokUsage(req.ip);
 
     if (ipUsage.attempts >= GROK_PER_IP_DAILY_LIMIT) {
       return respondFallback(res, mode, tagalog, "ip_limit");
     }
 
-    // Build conversation history for Grok.
     const messages = [
       {
         role: "system",
@@ -1333,7 +1360,6 @@ app.post("/chat", rateLimit, async (req, res) => {
         return respondFallback(res, mode, tagalog, "daily_limit");
       }
 
-      // Count every Grok API request.
       usage.attempts++;
       ipUsage.attempts++;
 
@@ -1421,7 +1447,6 @@ app.post("/chat", rateLimit, async (req, res) => {
       }
     }
 
-    // 6. Grok failed: use local fallback.
     if (getRemainingGrokAttempts() <= 0) {
       return respondFallback(res, mode, tagalog, "daily_limit");
     }
