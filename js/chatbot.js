@@ -8,7 +8,7 @@
 const CHAT_API =
     ["localhost", "127.0.0.1"].includes(location.hostname)
         ? "http://localhost:3000/chat"
-           : "https://jaychristian-chatbot.onrender.com/chat";
+        : "https://xtianbaccay.onrender.com/chat";
 
 const CHAT_TIMEOUT = 135000;
 
