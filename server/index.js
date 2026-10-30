@@ -185,7 +185,7 @@ const FRIENDS = [
   },
   {
     name: "Kyle Jezxel Brytch",
-    match: /\b(brytch|kyle)\b/,
+    match: /\b(brytch|kyle|jezxel)\b/,
     tl: "Criminology ang kurso niya.",
     en: "He studied Criminology.",
     partner: ""
@@ -345,6 +345,65 @@ function tesdaForPrompt() {
 }
 
 // ==========================================
+// HISTORY HELPERS
+// ==========================================
+// FIX: accepts different history shapes from the frontend
+// (text / content / message, and roles like user / model / bot / assistant).
+
+function historyText(item) {
+  if (!item || typeof item !== "object") return "";
+
+  const raw =
+    typeof item.text === "string"
+      ? item.text
+      : typeof item.content === "string"
+        ? item.content
+        : typeof item.message === "string"
+          ? item.message
+          : "";
+
+  return raw.trim();
+}
+
+function historyRole(item) {
+  if (!item || typeof item !== "object") return null;
+
+  const role = String(item.role || item.sender || "").toLowerCase();
+
+  if (role === "user" || role === "human" || role === "visitor") return "user";
+
+  if (
+    role === "assistant" ||
+    role === "model" ||
+    role === "bot" ||
+    role === "ai"
+  ) {
+    return "assistant";
+  }
+
+  return null;
+}
+
+// FIX: if the frontend already included the current message as the last
+// history item, drop it so it is not counted twice.
+function cleanHistory(history, currentMessage) {
+  if (!Array.isArray(history)) return [];
+
+  const list = history.filter(item => historyText(item));
+  const last = list[list.length - 1];
+
+  if (
+    last &&
+    historyRole(last) === "user" &&
+    historyText(last) === String(currentMessage || "").trim()
+  ) {
+    return list.slice(0, -1);
+  }
+
+  return list;
+}
+
+// ==========================================
 // SYSTEM PROMPT
 // ==========================================
 
@@ -377,10 +436,6 @@ PERSONALITY:
 - Short questions usually deserve short answers.
 - If asked for hugot lines, provide one or a few varied lines depending on the request.
 - Keep humor friendly, not cruel, humiliating, or offensive.
-- Casual profanity or strong language from a visitor does not automatically mean
-  the visitor is angry. Understand the context before replying.
-- If the visitor is joking, respond naturally and playfully.
-- If the visitor is genuinely upset, acknowledge it instead of joking.
 - For serious advice, be respectful and helpful.
 - For education, skills, work experience, and technical questions, prioritize
   accurate and professional answers. Do not sacrifice correctness for a joke.
@@ -483,11 +538,13 @@ RESPONSE STYLE:
 // CONVERSATION MODE
 // ==========================================
 
+// FIX: "reach/get in touch with jay" and "makokontak / macontact" now count as professional,
+// so contact details are only shared in professional mode.
 const PRO_RE =
-  /\b(job offer|job opening|job opportunity|work opportunity|offer(ing|s)?|hiring|hire|hired|recruit(er|ers|ing|ment)?|vacanc(y|ies)|interview|resume|cv|curriculum vitae|employer|employment|human resources|hr|join our team|our company|our team|our office|our organization|work for us|work with us|salary|sweldo|sahod|compensation|pay rate|hourly rate|daily rate|monthly rate|availability|available for work|available to work|start date|contact (si |ni )?(jay|him|siya|sya)|contact (info|information|details|number)|ma contact|makontak|contact number|email|e-mail|phone number|mobile number|business inquiry|project inquiry|freelance|proposal|alok|trabaho para|kumpanya|company|applicant|applying|apply|job interview|work schedule|onboarding|probation)\b/;
+  /\b(job offer|job opening|job opportunity|work opportunity|offer(ing|s)?|hiring|hire|hired|recruit(er|ers|ing|ment)?|vacanc(y|ies)|interview|resume|cv|curriculum vitae|employer|employment|human resources|hr|join our team|our company|our team|our office|our organization|work for us|work with us|salary|sweldo|sahod|compensation|pay rate|hourly rate|daily rate|monthly rate|availability|available for work|available to work|start date|(contact|reach|get in touch with) (si |ni )?(jay|him|siya|sya)|contact (info|information|details|number)|ma contact|macontact|ma-contact|makontak|makokontak|contact number|email|e-mail|phone number|mobile number|business inquiry|project inquiry|freelance|proposal|alok|trabaho para|kumpanya|company|applicant|applying|apply|job interview|work schedule|onboarding|probation)\b/;
 
 const CONTACT_RE =
-  /\b(contact|ma contact|makontak|email|e-mail|phone number|mobile number|contact number|reach)\b/;
+  /\b(contact|ma contact|macontact|ma-contact|makontak|makokontak|email|e-mail|phone number|mobile number|contact number|reach)\b/;
 
 const SALARY_RE =
   /\b(salary|sweldo|sahod|compensation|pay rate|hourly rate|daily rate|monthly rate)\b/;
@@ -498,20 +555,21 @@ const AVAILABILITY_RE =
 const WHY_HIRE_RE =
   /\b(why should (we|i) hire|why hire|why would (we|i) hire|why are you (a good|the right|suitable)|why is he (a good|the right|suitable)|why should (we|i) choose|why choose jay|what makes jay (a good|the right)|what can jay contribute|what can he contribute|why are you qualified|why is jay qualified|bakit (dapat|kailangan) (namin|ka namin) (kang )?i.?hire|bakit ka namin kukunin|bakit ikaw ang pipiliin|ano ang maiaambag ni jay)\b/;
 
-// Expanded casual language and profanity detection.
 const PLAYFUL_RE =
-  /(haha|hehe|hihi|\blol\b|lmao|charot|\bjoke\b|\bbiro\b|banat|hugot|\bjk\b|\bbes\b|\bpre\b|\bbro\b|\btol\b|\blods\b|\bhoy\b|\buy+\b|\bwtf\b|\bputang ina\b|\bputangina\b|\btangina\b|\bpota\b|\bpucha\b|\bgago\b|\btanga\b|\bbobo\b|\bshet\b|\bshit\b|\bfuck\b|\bfucking\b|\bdamn\b|\bbruh\b)/i;
+  /(haha|hehe|hihi|\blol\b|lmao|charot|\bjoke\b|\bbiro\b|banat|hugot|\bjk\b|\bbes\b|\bpre\b|\bbro\b|\btol\b|\blods\b|\bhoy\b|\buy+\b|\bwtf\b)/;
 
 const PLAYFUL_EMOJI_RE = /[😂🤣😭💀😆😅😜😝😏🤪😹]/u;
 
+// FIX: removed "company" (it is an English word and made English
+// messages from recruiters get Filipino replies).
 const TAGALOG_WORDS = new Set([
   "po", "opo", "ba", "ang", "ng", "mga", "si", "ni", "kay", "nya", "niya",
   "mo", "ko", "ako", "ikaw", "siya", "sya", "kami", "tayo", "pwede", "puwede",
   "meron", "wala", "ano", "saan", "sino", "paano", "bakit", "kailan",
   "naghahanap", "gusto", "namin", "natin", "salamat", "kumusta", "kamusta",
   "magandang", "taga", "nga", "naman", "lang", "yung", "yun", "ito", "dito",
-  "hindi", "oo", "sige", "mag", "nag", "pa", "na", "kayo", "kita", "tayo",
-  "trabaho", "sweldo", "sahod", "alok", "kumpanya", "company", "ilang", "gaano",
+  "hindi", "oo", "sige", "mag", "nag", "pa", "na", "kayo", "kita",
+  "trabaho", "sweldo", "sahod", "alok", "kumpanya", "ilang", "gaano",
   "kilala", "kaibigan", "kasama", "kaklase"
 ]);
 
@@ -530,16 +588,11 @@ function detectMode(message, q, history = []) {
 
   if (Array.isArray(history)) {
     const recentUserMessages = history
-      .filter(
-        item =>
-          item &&
-          item.role === "user" &&
-          typeof item.text === "string"
-      )
+      .filter(item => historyRole(item) === "user" && historyText(item))
       .slice(-1);
 
     const recentlyProfessional = recentUserMessages.some(item =>
-      PRO_RE.test(normalizeMessage(item.text))
+      PRO_RE.test(normalizeMessage(historyText(item)))
     );
 
     if (recentlyProfessional) return "professional";
@@ -550,24 +603,30 @@ function detectMode(message, q, history = []) {
 
 function buildModeInstruction(mode, tagalog) {
   const languageRule =
-    "LANGUAGE: Reply in the same language as the visitor's latest message " +
+    "LANGUAGE: Reply in the same language as the visitor's latest message. " +
     (tagalog
-      ? "The visitor is writing in Filipino/Taglish, so use natural Filipino/Taglish."
+      ? "The visitor is writing in Filipino/Taglish, so use respectful Filipino/Taglish."
       : "The visitor is writing in English, so reply in English.");
 
   if (mode === "professional") {
     return `
-CURRENT CONVERSATION MODE: PROFESSIONAL
+CURRENT CONVERSATION MODE: PROFESSIONAL (this overrides the humor rules above)
+- The visitor may be an employer, recruiter, or someone with a work inquiry.
 - Be polite, clear, concise, and professional.
 - Do NOT use jokes, hugot, banat, HAHAHA, charot, teasing, or playful emojis.
 - Do not bring up Jay's love life, crush, or relationship status.
+  If asked, politely say you would rather keep the conversation professional.
 - Use "po" naturally if the visitor writes in Filipino.
 - For job offers or interviews: thank them, briefly summarize Jay's verified
-  background, and invite them to contact Jay directly through the listed details.
-- When asked why Jay should be hired, explain his education, 486-hour PSA
-  internship, data entry and verification experience, basic IT support skills,
-  and ability to build web-based systems using HTML, CSS, and JavaScript.
+  background, and invite them to contact Jay directly through the Facebook,
+  Instagram, email, or phone listed above. Ask for the position, company,
+  location, and schedule.
+- When asked why Jay should be hired, explain his relevant education,
+  486-hour PSA internship, data entry and verification experience,
+  basic IT support skills, and ability to build web-based systems using
+  HTML, CSS, and JavaScript. Do not exaggerate his skill level.
 - Never invent salary, availability, start dates, or other contact details.
+  Say Jay will discuss those details directly.
 - ${languageRule}
 `;
   }
@@ -575,12 +634,8 @@ CURRENT CONVERSATION MODE: PROFESSIONAL
   if (mode === "playful") {
     return `
 CURRENT CONVERSATION MODE: PLAYFUL
-- The visitor is being casual, joking, teasing, or using strong language.
-- Match the visitor's energy naturally. Do not assume profanity means anger.
-- You may use friendly jokes, witty comebacks, Taglish, and emojis.
-- Do not respond with generic error messages when a casual reply is possible.
-- If the visitor is genuinely upset, acknowledge it instead of making fun of them.
-- Keep replies natural and varied. Do not force a joke into every response.
+- The visitor is joking or being casual. Match their energy with friendly humor.
+- Keep jokes kind and never repeat the previous joke.
 - Still stay accurate about Jay's profile.
 - Do not share Jay's email or phone number in this mode.
 - ${languageRule}
@@ -589,11 +644,10 @@ CURRENT CONVERSATION MODE: PLAYFUL
 
   return `
 CURRENT CONVERSATION MODE: NEUTRAL
-- Be warm, friendly, natural, and conversational.
-- Match the visitor's tone and language.
-- Do not force jokes, hugot, or heavy slang.
-- Answer the actual latest message, considering the conversation history.
-- Avoid generic canned replies when you can give a meaningful answer.
+- Be warm and friendly, but do not force jokes, hugot, or heavy slang.
+- Match the visitor's tone: if they write formally, answer formally;
+  if they write casually, you may be a little more casual.
+- Use humor only lightly, and only if the visitor invites it.
 - ${languageRule}
 `;
 }
@@ -607,6 +661,7 @@ function contactBlock() {
 }
 
 function getProfessionalAnswer(q, tl) {
+
   if (WHY_HIRE_RE.test(q)) {
     return tl
       ? `Dapat pong ikonsider si Jay dahil BS Information Technology graduate siya at may hands-on experience mula sa kanyang 486-hour internship sa Philippine Statistics Authority (PSA). Naging bahagi ng kanyang trabaho ang data entry, data verification, document processing, digital record management, at basic computer at printer troubleshooting.
@@ -663,8 +718,10 @@ const LERRY_RE = /\b(lerry|fortuno)\b/;
 const CLASSMATE_ASK_RE =
   /\b(kaklase|classmate|classmates|batchmate|batchmates|magkaklase|kabatch|schoolmate)\b/;
 
+// FIX: plain "dating" removed because in Tagalog it means "former"
+// (e.g. "dating kaklase"). It now only matches real romantic phrasing.
 const ROMANTIC_RE =
-  /\b(crush|crushes|nagustuhan|may gusto|gusto ba|gusto mo ba|gusto ni|gusto niya|gusto nya|gusto siya|gusto sya|type ba|type ni|type niya|type nya|jowa|nililigawan|liligawan|ligawan|love interest|special someone|kinakilig|girlfriend|boyfriend|mahal ba|mahal ni|mahal niya|mahal nya|has a crush|have a crush|like like|romantic|romantically|dating|date ni)\b/;
+  /\b(crush|crushes|nagustuhan|may gusto|gusto ba|gusto mo ba|gusto ni|gusto niya|gusto nya|gusto siya|gusto sya|type ba|type ni|type niya|type nya|jowa|nililigawan|liligawan|ligawan|love interest|special someone|kinakilig|girlfriend|boyfriend|mahal ba|mahal ni|mahal niya|mahal nya|has a crush|have a crush|like like|romantic|romantically|(is|are) (he|jay) dating|dating ba|date ni)\b/;
 
 const ROMANTIC_EN_RE =
   /\b(does|do|did) (jay|he) (like|likes|love|loves)\b|\blikes? (lerry|her)\b|\bin love with\b/;
@@ -721,9 +778,11 @@ You can also ask casual questions. 😊`;
   }
 
   // IT LEARNING WEBSITE RECOMMENDATIONS
+  // FIX: removed the standalone word "it" from the second check so normal
+  // sentences with "it" no longer trigger this list by accident.
   if (
     /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|learning website|learning websites|website to learn|websites to learn|site to learn|sites to learn|where can i learn|where to learn|free courses|free course|online course|online courses|learn it|learn programming|learn coding|study it|study programming|beginner resources|learning resources|resources for beginners|it learning|it courses|aralin ang it|matuto ng it|pag aralan ang it|pag aralan ang programming|website na pang aral|site na pang aral)\b/.test(q) &&
-    /\b(it|information technology|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|newbie|learning|learn|study|course|courses|website|websites|resource|resources|free|aral|matuto|pag aralan)\b/.test(q)
+    /\b(information technology|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|newbie|learning|learn|study|course|courses|website|websites|resource|resources|free|aral|matuto|pag aralan)\b/.test(q)
   ) {
     const resources = [
       {
@@ -793,8 +852,8 @@ ${resourceList}
     /\b(lets chat|let us chat|lets talk|let us talk|can we chat|just chat|chat tayo|usap tayo|kwentuhan tayo)\b/.test(q)
   ) {
     return tl
-      ? "Sige, chikahan tayo! 😂 Anong topic natin ngayon?"
-      : "Sure, let's chat! 😄 What's on your mind?";
+      ? "Magandang araw po! Welcome sa portfolio ni Jay. Handa po akong tumulong. Maaari po kayong magtanong tungkol sa skills, internship experience, education, career goals, o kung paano makontak si Jay."
+      : "Hello, and welcome to Jay's portfolio! I'm happy to help. You can ask me about Jay's skills, internship experience, education, career goals, or how to contact him.";
   }
 
   // CAREER GOALS
@@ -805,7 +864,11 @@ ${resourceList}
   }
 
   // CONTACT JAY
-  if (/\b(contact jay|reach jay|get in touch with jay)\b/.test(q)) {
+  // FIX: matches the same phrases as PRO_RE, so contact details are only
+  // given in professional mode. Also covers "makokontak" / "macontact".
+  if (
+    /\b(contact|reach|get in touch with) (jay|him|siya|sya)\b|\b(makontak|makokontak|macontact|ma contact|ma-contact)\b/.test(q)
+  ) {
     return tl
       ? `Maaari po ninyong makontak si Jay sa mga detalyeng ito:\n\n${contactBlock()}`
       : `You can reach Jay through the details below:\n\n${contactBlock()}`;
@@ -892,18 +955,22 @@ ${resourceList}
   // TESDA CLASSMATES LIST
   const recentTesda =
     Array.isArray(history) &&
-    history.slice(-2).some(
-      item =>
-        item &&
-        typeof item.text === "string" &&
-        /\b(tesda|data analytics)\b/.test(normalizeMessage(item.text))
-    );
+    history
+      .slice(-2)
+      .some(item => /\b(tesda|data analytics)\b/.test(normalizeMessage(historyText(item))));
+
+  // FIX: removed the very common words "mga", "sinong", "sino sino", "kasama"
+  // (e.g. "ano ang mga skills ni Jay sa data analytics" used to return the
+  // whole classmate list). Also, if a specific classmate name is in the
+  // question, the specific answer below is used instead of the full list.
+  const namedClassmates = findTesdaClassmates(q);
 
   if (
-    (/\b(tesda|data analytics)\b/.test(q) &&
-      /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasama|kasamahan|sino sino|sinong|mga)\b/.test(q)) ||
-    (recentTesda &&
-      /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasamahan)\b/.test(q))
+    namedClassmates.length === 0 &&
+    ((/\b(tesda|data analytics)\b/.test(q) &&
+      /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasamahan)\b/.test(q)) ||
+      (recentTesda &&
+        /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasamahan)\b/.test(q)))
   ) {
     if (pro) return proDeflect(tl);
 
@@ -917,7 +984,7 @@ ${resourceList}
   }
 
   // SPECIFIC TESDA CLASSMATE
-  const tesdaMatches = findTesdaClassmates(q);
+  const tesdaMatches = namedClassmates;
 
   if (tesdaMatches.length > 0 && tesdaMatches.length <= 3) {
     if (pro) return proDeflect(tl);
@@ -949,8 +1016,10 @@ ${resourceList}
   }
 
   // CRUSH IDENTITY
+  // FIX: also catches "who is jay's crush" / "sino ang crush ni jay" style questions.
   if (
-    /\b(sino crush|sino ang crush|sino crush nya|sino crush niya|sino yung crush|sino ung crush|pangalan ng crush|name ng crush|who is the crush|who is his crush|may alam ka ba|may alam kaba|kilala mo ba yung crush|kilala mo ba crush)\b/.test(q)
+    /\b(sino crush|sino ang crush|sino crush nya|sino crush niya|sino yung crush|sino ung crush|pangalan ng crush|name ng crush|who is the crush|who is his crush|who is jays crush|who is jay crush|whos jays crush|whos the crush|whos his crush|may alam ka ba|may alam kaba|kilala mo ba yung crush|kilala mo ba crush)\b/.test(q) ||
+    (/\b(who|sino|whos)\b/.test(q) && /\bcrush\b/.test(q) && /\b(jay|jays|niya|nya|his|ni jay)\b/.test(q))
   ) {
     if (pro) return proDeflect(tl);
 
@@ -1039,22 +1108,10 @@ ${resourceList}
     return "Taga Tumauini, Isabela, Philippines si Jay. 📍 Ako naman ay chatbot niya, kaya wala akong sariling bahay. HAHAHA! 😄";
   }
 
-  // INTRODUCTION
-  if (
-    /\b(who is jay|who is jay christian|tell me about jay|introduce jay|about jay|sino si jay|pakilala si jay|kwento tungkol kay jay)\b/.test(q)
-  ) {
-    if (tl) {
-      return pro
-        ? "Si Jay Christian Baccay po ay BS Information Technology graduate noong 2026 mula sa Honorato G. Baquiran College, Inc. Nag-OJT po siya sa PSA at may skills sa web development, basic IT support, at data entry. Willing po siyang matuto at mag-improve."
-        : "Si Jay Christian Baccay ay BS Information Technology graduate noong 2026 mula sa Honorato G. Baquiran College, Inc. Nag-OJT siya sa PSA at may skills sa web development, basic IT support, at data entry. Mahiyain minsan, pero willing matuto. 😊";
-    }
-
-    return "Jay Christian Baccay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. He completed an internship at the Philippine Statistics Authority and has skills in web development, basic IT support, and data entry. He is shy at first, but eager to learn.";
-  }
-
   // RELATIONSHIP STATUS
+  // FIX: "single" alone matched things like "a single question".
   if (
-    /\b(single|may jowa|may girlfriend|may boyfriend|may partner|may asawa|taken ba|in a relationship|love life|jowa ni jay|girlfriend ni jay|boyfriend ni jay)\b/.test(q)
+    /\b(single ba|is (he|jay) single|jay single|siya single|sya single|may jowa|may girlfriend|may boyfriend|may partner|may asawa|taken ba|in a relationship|love life|jowa ni jay|girlfriend ni jay|boyfriend ni jay)\b/.test(q)
   ) {
     if (pro) return proDeflect(tl);
 
@@ -1168,8 +1225,39 @@ ${resourceList}
       : "Jay has Data Analytics training/certificate through TESDA. He also has experience in data entry, data verification, and digital records management from his PSA internship.";
   }
 
+  // HOBBIES AND INTERESTS
+  // FIX: this was listed in the suggested questions but had no answer.
+  // It only states what is verified and does not invent hobbies.
+  if (
+    /\b(hobby|hobbies|libangan|hilig|pinagkakaabalahan|his interests|jays interests|interests ni jay|interests niya|interests nya|your interests)\b/.test(q)
+  ) {
+    return tl
+      ? "Ang confirmed ko lang tungkol sa interests ni Jay ay interesado siya sa UI/UX design at patuloy na pag-develop ng technical skills. Wala akong confirmed na detalye tungkol sa personal hobbies niya, kaya hindi ako manghuhula. 😊"
+      : "What I can confirm is that Jay is interested in UI/UX design and in continuing to develop his technical skills. I don't have confirmed details about his personal hobbies, so I won't guess. 😊";
+  }
+
+  // INTRODUCTION
+  // FIX: moved below the topic answers. Before, "tell me about jay's skills"
+  // matched "tell me about jay" and returned the introduction instead.
+  if (
+    /\b(who is jay|who is jay christian|tell me about jay|introduce jay|about jay|sino si jay|pakilala si jay|kwento tungkol kay jay)\b/.test(q)
+  ) {
+    if (tl) {
+      return pro
+        ? "Si Jay Christian Baccay po ay BS Information Technology graduate noong 2026 mula sa Honorato G. Baquiran College, Inc. Nag-OJT po siya sa PSA at may skills sa web development, basic IT support, at data entry. Willing po siyang matuto at mag-improve."
+        : "Si Jay Christian Baccay ay BS Information Technology graduate noong 2026 mula sa Honorato G. Baquiran College, Inc. Nag-OJT siya sa PSA at may skills sa web development, basic IT support, at data entry. Mahiyain minsan, pero willing matuto. 😊";
+    }
+
+    return "Jay Christian Baccay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. He completed an internship at the Philippine Statistics Authority and has skills in web development, basic IT support, and data entry. He is shy at first, but eager to learn.";
+  }
+
   // THANKS
-  if (/\b(thank you|thanks|salamat|thank u)\b/.test(q)) {
+  // FIX: only short messages count as "thanks". Before, "thank you, now tell me
+  // about his skills" got a thanks reply and the real question was ignored.
+  if (
+    q.split(" ").length <= 6 &&
+    /\b(thank you|thanks|salamat|thank u)\b/.test(q)
+  ) {
     const formalThanks =
       pro || /\b(po|thank you for|appreciate)\b/.test(q);
 
@@ -1209,53 +1297,32 @@ ${resourceList}
 
 function getVibeFallback(mode, tl, reason) {
   const limited = reason === "daily_limit" || reason === "ip_limit";
-  const failed = reason === "grok_error" || reason === "grok_limit";
 
   if (mode === "professional") {
     return tl
-      ? `Pasensya na po, nagkaroon ng temporary issue sa pagproseso ng tanong ninyo. Maaari ko pa rin pong ibigay ang verified information tungkol sa skills, experience, education, at contact details ni Jay.\n\n${contactBlock()}`
-      : `Sorry, there was a temporary issue processing your question. I can still provide verified information about Jay's skills, experience, education, and contact details.\n\n${contactBlock()}`;
+      ? `Pasensya na po, hindi ko po masasagot nang detalyado ang tanong na iyan sa ngayon. Matutulungan ko po kayo sa skills, experience, education, at contact details ni Jay. Para po sa mas detalyadong usapan, maaari po ninyo siyang makontak nang direkta:\n\n${contactBlock()}`
+      : `I'm sorry, I can't answer that question in detail right now. I can still help with Jay's skills, experience, education, and contact details. For a more detailed discussion, please contact him directly:\n\n${contactBlock()}`;
   }
 
   if (mode === "playful") {
     if (limited) {
       return randomReply([
-        "HAHAHA! 😭 Mukhang kailangan munang magpahinga ng AI brain ko. Pero game pa rin ako sa mga tanong tungkol kay Jay!",
-        "AY! Naubos muna ang AI energy ko. Parang cellphone na 1% battery. 🔋😂 Balik tayo sa local questions muna!",
-        "CHAROT! Nag-power nap muna ang utak ko. 😂 Pero pwede pa rin kitang tulungan tungkol sa profile ni Jay!"
-      ]);
-    }
-
-    if (failed) {
-      return randomReply([
-        "HAHAHA! Nagloko muna ang connection ko. Hindi ako galit, nagka-technical difficulties lang. 😂 Ulitin mo nga?",
-        "AY! Na-mental block ang chatbot. Parang tinawag sa recitation tapos walang review. 😭 Try mo ulit!",
-        "Sandali, nag-loading ang utak ko. HAHAHA! 😂 Pakiulit nga, baka masagot ko na sa second attempt."
+        "HAHAHA! 😭 Napagod na ang AI brain ko for today, pero andito pa rin ako! Itanong mo sa'kin ang skills, OJT, education, o social media ni Jay at sasagot ako agad. 😎",
+        "AY! 😂 Ubos na ang AI energy ko ngayong araw, parang battery na 1% na lang. 🔋 Pero kaya ko pa rin sagutin ang tungkol sa skills, internship, at education ni Jay! Subukan mo!",
+        "CHAROT! 🤣 Nag-power nap muna ang utak ko for today. Pero huwag kang mag-alala, tanungin mo lang ako tungkol sa skills, OJT, o education ni Jay at kaya ko pa yan! 👀"
       ]);
     }
 
     return randomReply([
-      "HAHAHA! Wait lang, hindi ko agad nasundan. Ano ulit? 😂",
-      "Uy, nag-buffer ako saglit. 😭 Pakiulit nga!",
-      "Hala, nawala ako sa usapan. HAHAHA! Ano nga ulit yun? 🤣"
+      "HAHAHA! 😭 Nag-lag ang utak ko saglit, parang Wi-Fi sa tabi ng microwave. 📶 Subukan mo ulit mamaya, o itanong mo muna ang skills, OJT, o education ni Jay!",
+      "AY SHET HAHAHA! 😂 Na-blanko ako bigla, parang nakalimutan ang assignment. Tanong ka ulit mamaya, o itanong mo muna ang tungkol sa skills at internship ni Jay! 😎",
+      "Uy sorry! 😅 Na-seen-zone ako ng server saglit. Subukan mo ulit mamaya, o itanong mo muna kung ano ang skills o social media ni Jay!"
     ]);
   }
 
-  if (limited) {
-    return tl
-      ? "Pasensya na, pansamantalang naabot ang limit ng AI replies. Maaari pa rin kitang tulungan sa mga impormasyon tungkol sa skills, internship, education, at profile ni Jay."
-      : "The AI response limit has temporarily been reached. I can still help with information about Jay's skills, internship, education, and profile.";
-  }
-
-  if (failed) {
-    return tl
-      ? "Pasensya na, nagkaroon ng pansamantalang problema sa AI connection. Pakisubukan ulit ang tanong mo."
-      : "Sorry, there was a temporary problem connecting to the AI service. Please try asking again.";
-  }
-
   return tl
-    ? "Pasensya na, hindi ko agad nasundan ang tanong mo. Puwede mo bang sabihin ulit sa ibang paraan?"
-    : "Sorry, I didn't quite understand that. Could you rephrase your question?";
+    ? "Pasensya na, hindi ko masasagot nang maayos ang tanong na iyan sa ngayon. Subukan mo ulit mamaya, o itanong mo muna ang tungkol sa skills, internship, education, o social media ni Jay at masasagot ko agad. 😊"
+    : "Sorry, I can't answer that properly right now. Please try again later, or ask me about Jay's skills, internship, education, or social media and I can answer right away. 😊";
 }
 
 function respondFallback(res, mode, tagalog, reason) {
@@ -1326,10 +1393,8 @@ setInterval(() => {
 // FILLER MESSAGES
 // ==========================================
 
-// Tinanggal ang "wala" para hindi ma-classify ang "wala akong ginagawa"
-// bilang simpleng filler message.
 const FILLER_RE =
-  /^(ok|okay|okey|k|sige|ge|ah+|oh+|hm+|hmm+|wow|nice|cool|galing|talaga|really|weh|haha+|hehe+|hihi+|lol|ayos|aww+|i see|got it)( po| na| lang)?$/;
+  /^(ok|okay|okey|k|sige|ge|ah+|oh+|hm+|hmm+|wow|nice|cool|galing|talaga|really|weh|haha+|hehe+|hihi+|lol|wala|ayos|aww+|i see|got it)( po| na| lang)?$/;
 
 function getFillerAnswer(q, mode, tl) {
   if (q && !FILLER_RE.test(q)) return null;
@@ -1352,12 +1417,13 @@ function getFillerAnswer(q, mode, tl) {
 // TOKEN SAVERS
 // ==========================================
 
-const GROK_HISTORY_LIMIT = 8;
-const GROK_HISTORY_CHARS = 1000;
-const GROK_MAX_TOKENS = 600;
-
+const GROK_HISTORY_LIMIT = 4;
+const GROK_HISTORY_CHARS = 600;
+// FIX: raised from 400. If the model uses reasoning tokens, 400 can run out
+// before any text is produced. You can override it with GROK_MAX_TOKENS in .env.
+const GROK_MAX_TOKENS = Number(process.env.GROK_MAX_TOKENS) || 800;
 const BREVITY_RULE =
-  "\nKeep replies concise and natural (about 100 words or less) unless the visitor asks for details. Avoid generic fallback-style replies when you can answer naturally.";
+  "\nKeep replies concise (about 100 words or less) unless the visitor asks for details.";
 
 // ==========================================
 // GROK CONFIGURATION
@@ -1408,7 +1474,7 @@ app.get("/models", (req, res) => {
 
 app.post("/chat", rateLimit, async (req, res) => {
   try {
-    const { message, history = [] } = req.body || {};
+    const { message, history: rawHistory = [] } = req.body || {};
 
     if (typeof message !== "string" || !message.trim()) {
       return res.status(400).json({
@@ -1417,6 +1483,10 @@ app.post("/chat", rateLimit, async (req, res) => {
     }
 
     const cleanMessage = message.trim().slice(0, 1500);
+
+    // FIX: history without the current message (in case the frontend
+    // already added it), so mode detection looks at the PREVIOUS message.
+    const history = cleanHistory(rawHistory, cleanMessage);
 
     const normalizedMessage = normalizeMessage(cleanMessage);
     const mode = detectMode(cleanMessage, normalizedMessage, history);
@@ -1444,8 +1514,8 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 3) Cache only first questions and non-playful mode.
-    const hasHistory = Array.isArray(history) && history.length > 0;
+    // 3) Cache: only for first questions and non-playful mode.
+    const hasHistory = history.length > 0;
     const canCache = !hasHistory && mode !== "playful";
     const cacheKey = `${mode}|${normalizedMessage}`;
 
@@ -1490,29 +1560,16 @@ app.post("/chat", rateLimit, async (req, res) => {
       }
     ];
 
-    if (Array.isArray(history)) {
-      for (const item of history.slice(-GROK_HISTORY_LIMIT)) {
-        if (
-          !item ||
-          typeof item.text !== "string" ||
-          !item.text.trim()
-        ) {
-          continue;
-        }
+    for (const item of history.slice(-GROK_HISTORY_LIMIT)) {
+      const text = historyText(item);
+      const role = historyRole(item);
 
-        let role = item.role;
+      if (!text || !role) continue;
 
-        if (role === "model") role = "assistant";
-
-        if (role !== "user" && role !== "assistant") {
-          continue;
-        }
-
-        messages.push({
-          role,
-          content: item.text.trim().slice(0, GROK_HISTORY_CHARS)
-        });
-      }
+      messages.push({
+        role,
+        content: text.slice(0, GROK_HISTORY_CHARS)
+      });
     }
 
     messages.push({
@@ -1520,7 +1577,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       content: cleanMessage
     });
 
-    const temperature = mode === "professional" ? 0.4 : 0.8;
+    const temperature = mode === "professional" ? 0.4 : 0.7;
 
     let lastError = "No model returned a response.";
     let lastStatus = 0;
@@ -1538,6 +1595,10 @@ app.post("/chat", rateLimit, async (req, res) => {
       console.log(
         `Grok API attempt ${usage.attempts}/${getGrokLimitToday()} using ${model} (mode: ${mode})`
       );
+
+      // ==========================================
+      // GROK 4.7 RESPONSES API
+      // ==========================================
 
       try {
         const response = await fetch(
@@ -1577,6 +1638,7 @@ app.post("/chat", rateLimit, async (req, res) => {
           continue;
         }
 
+        // Extract text from Grok Responses API
         let answer = "";
 
         if (Array.isArray(data.output)) {
@@ -1589,6 +1651,7 @@ app.post("/chat", rateLimit, async (req, res) => {
             .trim();
         }
 
+        // Additional response format fallback
         if (!answer && typeof data.output_text === "string") {
           answer = data.output_text.trim();
         }
@@ -1644,17 +1707,12 @@ app.post("/chat", rateLimit, async (req, res) => {
     );
 
   } catch (error) {
+    // FIX: the real error stays in the server log; the visitor gets a generic message.
     console.error("Chat server error:", error.message);
 
-    // Return a normal fallback instead of exposing server errors to visitors.
-    const message = req.body?.message || "";
-    const normalized = normalizeMessage(
-      typeof message === "string" ? message : ""
-    );
-    const mode = detectMode(message, normalized);
-    const tagalog = isTagalog(normalized);
-
-    return respondFallback(res, mode, tagalog, "grok_error");
+    return res.status(502).json({
+      error: "Unexpected chatbot server error. Please try again."
+    });
   }
 });
 
