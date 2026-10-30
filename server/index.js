@@ -73,7 +73,6 @@ setInterval(() => {
 // ==========================================
 
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
-// Max na unused attempts na pwedeng idagdag sa susunod na araw.
 const GROK_MAX_CARRYOVER = Number(process.env.GROK_MAX_CARRYOVER) || 500;
 const PHILIPPINE_TIME_ZONE = "Asia/Manila";
 
@@ -493,6 +492,10 @@ const SALARY_RE =
 const AVAILABILITY_RE =
   /\b(availability|available for work|available to work|start date|work schedule|available ba|pwede ba siya magsimula|kailan siya pwede)\b/;
 
+// NEW: WHY SHOULD WE HIRE JAY
+const WHY_HIRE_RE =
+  /\b(why should (we|i) hire|why hire|why would (we|i) hire|why are you (a good|the right|suitable)|why is he (a good|the right|suitable)|why should (we|i) choose|why choose jay|what makes jay (a good|the right)|what can jay contribute|what can he contribute|why are you qualified|why is jay qualified|bakit (dapat|kailangan) (namin|ka namin) (kang )?i.?hire|bakit ka namin kukunin|bakit ikaw ang pipiliin|ano ang maiaambag ni jay)\b/;
+
 const PLAYFUL_RE =
   /(haha|hehe|hihi|\blol\b|lmao|charot|\bjoke\b|\bbiro\b|banat|hugot|\bjk\b|\bbes\b|\bpre\b|\bbro\b|\btol\b|\blods\b|\bhoy\b|\buy+\b|\bwtf\b)/;
 
@@ -505,7 +508,7 @@ const TAGALOG_WORDS = new Set([
   "naghahanap", "gusto", "namin", "natin", "salamat", "kumusta", "kamusta",
   "magandang", "taga", "nga", "naman", "lang", "yung", "yun", "ito", "dito",
   "hindi", "oo", "sige", "mag", "nag", "pa", "na", "kayo", "kita", "tayo",
-  "trabaho", "sweldo", "sahod", "alok", "kumpanya", "ilang", "gaano",
+  "trabaho", "sweldo", "sahod", "alok", "kumpanya", "company", "ilang", "gaano",
   "kilala", "kaibigan", "kasama", "kaklase"
 ]);
 
@@ -523,8 +526,6 @@ function detectMode(message, q, history = []) {
   if (isPlayful(message, q)) return "playful";
 
   if (Array.isArray(history)) {
-    // Professional mode only carries over to the very next message,
-    // so casual questions are not stuck in professional mode.
     const recentUserMessages = history
       .filter(
         item =>
@@ -547,7 +548,6 @@ function detectMode(message, q, history = []) {
 function buildModeInstruction(mode, tagalog) {
   const languageRule =
     "LANGUAGE: Reply in the same language as the visitor's latest message " +
-    "(English, Filipino, or Taglish). " +
     (tagalog
       ? "The visitor is writing in Filipino/Taglish, so use respectful Filipino/Taglish."
       : "The visitor is writing in English, so reply in English.");
@@ -565,6 +565,10 @@ CURRENT CONVERSATION MODE: PROFESSIONAL (this overrides the humor rules above)
   background, and invite them to contact Jay directly through the Facebook,
   Instagram, email, or phone listed above. Ask for the position, company,
   location, and schedule.
+- When asked why Jay should be hired, explain his relevant education,
+  486-hour PSA internship, data entry and verification experience,
+  basic IT support skills, and ability to build web-based systems using
+  HTML, CSS, and JavaScript. Do not exaggerate his skill level.
 - Never invent salary, availability, start dates, or other contact details.
   Say Jay will discuss those details directly.
 - ${languageRule}
@@ -601,6 +605,26 @@ function contactBlock() {
 }
 
 function getProfessionalAnswer(q, tl) {
+
+  // WHY SHOULD WE HIRE JAY
+  if (WHY_HIRE_RE.test(q)) {
+    return tl
+      ? `Dapat pong ikonsider si Jay dahil BS Information Technology graduate siya at may hands-on experience mula sa kanyang 486-hour internship sa Philippine Statistics Authority (PSA). Naging bahagi ng kanyang trabaho ang data entry, data verification, document processing, digital record management, at basic computer at printer troubleshooting.
+
+May skills din siya sa HTML, CSS, at JavaScript para sa paggawa ng websites at web-based systems, pati basic IT support at networking. Willing siyang matuto, mag-adjust, at patuloy na pagbutihin ang kanyang technical skills.
+
+Para po sa karagdagang impormasyon o interview, maaari ninyo siyang makontak:
+
+${contactBlock()}`
+      : `Jay is a BS Information Technology graduate with hands-on experience gained through his 486-hour internship at the Philippine Statistics Authority (PSA). His experience includes data entry, data verification, document processing, digital record management, and basic computer and printer troubleshooting.
+
+He can also build websites and web-based systems using HTML, CSS, and JavaScript, and has basic IT support and networking skills. He is willing to learn, adapt, and continue improving his technical abilities.
+
+For more information or an interview, you may contact him directly:
+
+${contactBlock()}`;
+  }
+
   if (SALARY_RE.test(q)) {
     return tl
       ? `Pasensya na po, hindi ko po maaaring sagutin ang tungkol sa sweldo o terms of employment para kay Jay. Mas mainam po na direkta niyo siyang makausap:\n\n${contactBlock()}`
@@ -634,19 +658,11 @@ function proDeflect(tl) {
 // LERRY / ROMANTIC QUESTION HELPERS
 // ==========================================
 
-// Lerry questions follow three rules:
-// 1) "Sino si Lerry?"              -> factual only
-// 2) "Kaklase ba ni Jay si Lerry?" -> factual only
-// 3) "Crush ba ni Jay si Lerry?"   -> playful + mysterious, no confirm/deny
-// Ordinary questions never get crush jokes.
-
 const LERRY_RE = /\b(lerry|fortuno)\b/;
 
 const CLASSMATE_ASK_RE =
   /\b(kaklase|classmate|classmates|batchmate|batchmates|magkaklase|kabatch|schoolmate)\b/;
 
-// Only real romantic wording counts. A bare "gusto" (e.g. "gusto ko malaman")
-// or "type" (e.g. "what type of...") must NOT trigger a crush joke.
 const ROMANTIC_RE =
   /\b(crush|crushes|nagustuhan|may gusto|gusto ba|gusto mo ba|gusto ni|gusto niya|gusto nya|gusto siya|gusto sya|type ba|type ni|type niya|type nya|jowa|nililigawan|liligawan|ligawan|love interest|special someone|kinakilig|girlfriend|boyfriend|mahal ba|mahal ni|mahal niya|mahal nya|has a crush|have a crush|like like|romantic|romantically|dating|date ni)\b/;
 
@@ -874,9 +890,6 @@ ${resourceList}
   }
 
   // TESDA CLASSMATES LIST
-  // Works when the message itself mentions TESDA, OR when TESDA was just
-  // mentioned in the last two messages (e.g. "nag tesda ba si jay?" then
-  // "sino mga mate nya?").
   const recentTesda =
     Array.isArray(history) &&
     history.slice(-2).some(
@@ -1208,7 +1221,7 @@ function getVibeFallback(mode, tl, reason) {
       return randomReply([
         "HAHAHA! 😭 Napagod na ang AI brain ko for today, pero andito pa rin ako! Itanong mo sa'kin ang skills, OJT, education, o social media ni Jay at sasagot ako agad. 😎",
         "AY! 😂 Ubos na ang AI energy ko ngayong araw, parang battery na 1% na lang. 🔋 Pero kaya ko pa rin sagutin ang tungkol sa skills, internship, at education ni Jay! Subukan mo!",
-        "CHAROT! 🤣 Nag-power nap muna ang utak ko for today. Pero huwag kang mag-alala, tanungin mo lang ako tungkol sa skills, OJT, o social media ni Jay at kaya ko pa yan! 👀"
+        "CHAROT! 🤣 Nag-power nap muna ang utak ko for today. Pero huwag kang mag-alala, tanungin mo lang ako tungkol sa skills, OJT, o education ni Jay at kaya ko pa yan! 👀"
       ]);
     }
 
@@ -1329,8 +1342,6 @@ const BREVITY_RULE =
 const GROK_API_KEY =
   process.env.GROK_API_KEY || process.env.XAI_API_KEY;
 
-// Pwede mong palitan ang model sa Render (Environment variable: GROK_MODEL)
-// nang hindi ginagalaw ang code. Default: grok-4.7
 const MODELS = [process.env.GROK_MODEL || "grok-4.7"];
 const GROK_TIMEOUT_MS = 120000;
 
