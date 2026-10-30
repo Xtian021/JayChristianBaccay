@@ -620,98 +620,111 @@ function getLocalAnswer(message, history = []) {
   const pro = mode === "professional";
   const tl = isTagalog(q);
 
-  // ------------------------------------------
-  // NEW: SUGGESTED QUESTIONS
-  // ------------------------------------------
-
+  // SUGGESTED QUESTIONS
   if (
     /\b(what can i ask|what should i ask|what can i ask you|what should i ask you|suggested questions|show questions|show me questions|give me questions|what do you know about jay|what can you tell me about jay|what can you help me with|ano pwede itanong|ano ang pwede itanong|ano pwede kong itanong|anong pwede itanong|mga suggested questions|suggest questions)\b/.test(q)
   ) {
     return tl
-      ? `Marami kang puwedeng itanong tungkol kay Jay! 😊\n\n**Mga puwede mong itanong:**\n- Sino si Jay Christian Baccay?\n- Ano ang educational background niya?\n- Ano ang technical skills niya?\n- Ano ang experience niya sa PSA?\n- Anong trabaho ang hinahanap niya?\n- Marunong ba siyang gumawa ng website o system?\n- Ano ang alam niya sa Data Analytics?\n- Anong websites ang puwedeng gamitin para matuto ng IT?\n- Ano ang hobbies o interests niya?\n- Paano siya makokontak?\n\nPwede ka ring magtanong ng casual questions. Basta huwag lang masyadong detective sa crush niya. HAHAHA! 😂`
-      : `You can ask me many things about Jay! 😊\n\n**Suggested questions:**\n- Who is Jay Christian Baccay?\n- What is his educational background?\n- What are his technical skills?\n- What was his experience at PSA?\n- What kind of jobs is he looking for?\n- Can he build websites or systems?\n- What does he know about Data Analytics?\n- What websites can beginners use to learn IT?\n- What are his interests?\n- How can I contact him?\n\nYou can also ask casual questions. Just don't turn into a detective about his crush. 😂`;
+      ? `Marami kang puwedeng itanong tungkol kay Jay! 😊
+
+**Mga puwede mong itanong:**
+- Sino si Jay Christian Baccay?
+- Ano ang educational background niya?
+- Ano ang technical skills niya?
+- Ano ang experience niya sa PSA?
+- Anong trabaho ang hinahanap niya?
+- Marunong ba siyang gumawa ng website o system?
+- Ano ang alam niya sa Data Analytics?
+- Anong websites ang puwedeng gamitin para matuto ng IT?
+- Ano ang hobbies o interests niya?
+- Paano siya makokontak?
+
+Pwede ka ring magtanong ng casual questions. 😊`
+      : `You can ask me many things about Jay! 😊
+
+**Suggested questions:**
+- Who is Jay Christian Baccay?
+- What is his educational background?
+- What are his technical skills?
+- What was his experience at PSA?
+- What kind of jobs is he looking for?
+- Can he build websites or systems?
+- What does he know about Data Analytics?
+- What websites can beginners use to learn IT?
+- What are his interests?
+- How can I contact him?
+
+You can also ask casual questions. 😊`;
   }
 
-  // ------------------------------------------
-  // NEW: IT LEARNING WEBSITE RECOMMENDATIONS
-  // ------------------------------------------
-    if (
-  /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|learning website|learning websites|website to learn|websites to learn|site to learn|sites to learn|where can i learn|where to learn|free courses|free course|online course|online courses|learn it|learn programming|learn coding|study it|study programming|beginner resources|learning resources|resources for beginners|it learning|it courses|aralin ang it|matuto ng it|pag aralan ang it|pag aralan ang programming|website na pang aral|site na pang aral)\b/.test(q) &&
-  /\b(it|information technology|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|newbie|learning|learn|study|course|courses|website|websites|resource|resources|free|aral|matuto|pag aralan)\b/.test(q)
-) {
-  const resources = [
-    {
-      name: "Cisco Networking Academy",
-      url: "https://www.netacad.com/",
-      detail: tl
-        ? "Maganda para sa networking, cybersecurity, at IT fundamentals. May mga libreng self-paced courses."
-        : "Great for networking, cybersecurity, and IT fundamentals. Offers free self-paced courses."
-    },
-    {
-      name: "freeCodeCamp",
-      url: "https://www.freecodecamp.org/",
-      detail: tl
-        ? "Para sa HTML, CSS, JavaScript, web development, at programming. May hands-on exercises."
-        : "Learn HTML, CSS, JavaScript, web development, and programming through hands-on exercises."
-    },
-    {
-      name: "W3Schools",
-      url: "https://www.w3schools.com/",
-      detail: tl
-        ? "Beginner-friendly tutorials para sa HTML, CSS, JavaScript, PHP, SQL, at iba pa."
-        : "Beginner-friendly tutorials for HTML, CSS, JavaScript, PHP, SQL, and more."
-    },
-    {
-      name: "Microsoft Learn",
-      url: "https://learn.microsoft.com/training/",
-      detail: tl
-        ? "Para sa Windows, Microsoft technologies, Azure, at IT-related learning paths."
-        : "Learn about Windows, Microsoft technologies, Azure, and IT-related topics."
-    },
-    {
-      name: "MDN Web Docs",
-      url: "https://developer.mozilla.org/",
-      detail: tl
-        ? "Mas detalyadong documentation at guides para sa HTML, CSS, JavaScript, at web development."
-        : "Detailed documentation and guides for HTML, CSS, JavaScript, and web development."
-    },
-    {
-      name: "Khan Academy",
-      url: "https://www.khanacademy.org/computing",
-      detail: tl
-        ? "May beginner lessons tungkol sa computing, programming, at computer science."
-        : "Beginner lessons covering computing, programming, and computer science."
-    }
-  ];
+  // IT LEARNING WEBSITE RECOMMENDATIONS
+  if (
+    /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|learning website|learning websites|website to learn|websites to learn|site to learn|sites to learn|where can i learn|where to learn|free courses|free course|online course|online courses|learn it|learn programming|learn coding|study it|study programming|beginner resources|learning resources|resources for beginners|it learning|it courses|aralin ang it|matuto ng it|pag aralan ang it|pag aralan ang programming|website na pang aral|site na pang aral)\b/.test(q) &&
+    /\b(it|information technology|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|newbie|learning|learn|study|course|courses|website|websites|resource|resources|free|aral|matuto|pag aralan)\b/.test(q)
+  ) {
+    const resources = [
+      {
+        name: "Cisco Networking Academy",
+        url: "https://www.netacad.com/",
+        detail: tl
+          ? "Para sa networking, cybersecurity, at IT fundamentals."
+          : "For networking, cybersecurity, and IT fundamentals."
+      },
+      {
+        name: "freeCodeCamp",
+        url: "https://www.freecodecamp.org/",
+        detail: tl
+          ? "Para sa HTML, CSS, JavaScript, web development, at programming."
+          : "For HTML, CSS, JavaScript, web development, and programming."
+      },
+      {
+        name: "W3Schools",
+        url: "https://www.w3schools.com/",
+        detail: tl
+          ? "Beginner-friendly tutorials para sa HTML, CSS, JavaScript, PHP, at iba pa."
+          : "Beginner-friendly tutorials for HTML, CSS, JavaScript, PHP, and more."
+      },
+      {
+        name: "Microsoft Learn",
+        url: "https://learn.microsoft.com/training/",
+        detail: tl
+          ? "Para sa Windows, Microsoft technologies, at Azure."
+          : "For Windows, Microsoft technologies, and Azure."
+      },
+      {
+        name: "MDN Web Docs",
+        url: "https://developer.mozilla.org/",
+        detail: tl
+          ? "Documentation at guides para sa web development."
+          : "Documentation and guides for web development."
+      },
+      {
+        name: "Khan Academy",
+        url: "https://www.khanacademy.org/computing",
+        detail: tl
+          ? "Beginner lessons tungkol sa computing at programming."
+          : "Beginner lessons about computing and programming."
+      }
+    ];
 
-}
-
-// Mysterious crush responses — never admit or confirm
-if (
-  /\b(crush|crushing|in love|like someone|likes someone|may gusto|nagkagusto|gusto niya|gusto mo)\b/i.test(q) &&
-  /\b(ba|siya|sya|someone|anyone|who|sino|may|meron|does|do you|is he|is she|talaga)\b/i.test(q)
-) {
-  const replies = [
-    "Bakit, curious ka ba? HAHAHA 😏",
-    "Secret lang muna. Hindi lahat kailangang malaman. 🤫",
-    "Malay mo meron, malay mo wala. HAHAHA",
-    "Walang confirmation dito. 😂",
-    "Hmm... magandang tanong. Next question! 😆"
-  ];
-
-  return replies[Math.floor(Math.random() * replies.length)];
-}
-    
     const resourceList = resources
       .map(item => `**${item.name}**\n${item.url}\n${item.detail}`)
       .join("\n\n");
 
     return tl
-      ? `Oo naman! 😊 Kung beginner ka pa lang sa IT, ito ang mga websites na puwede mong gamitin. Marami rito ay may libreng learning materials:\n\n${resourceList}\n\n**Suggestion ko:** Kung gusto mong matuto gumawa ng website, magsimula sa HTML, CSS, at JavaScript gamit ang freeCodeCamp at W3Schools. Kung networking o IT Support naman ang goal mo, subukan ang Cisco Networking Academy at Microsoft Learn.\n\nDahan-dahan lang sa pag-aaral. Practice ang pinakaimportante! 💻`
-      : `Absolutely! 😊 If you're just starting in IT, these websites are good places to learn. Many offer free learning materials:\n\n${resourceList}\n\n**My recommendation:** If you want to build websites, start with HTML, CSS, and JavaScript using freeCodeCamp and W3Schools. If you're interested in networking or IT Support, try Cisco Networking Academy and Microsoft Learn.\n\nTake it one step at a time. Consistent practice is what matters most! 💻`;
+      ? `Ito ang mga websites na puwede mong gamitin para matuto ng IT:
+
+${resourceList}
+
+**Suggestion:** Para sa web development, magsimula sa freeCodeCamp at W3Schools. Para sa networking at IT Support, subukan ang Cisco Networking Academy at Microsoft Learn. 💻`
+      : `Here are some websites where you can learn IT:
+
+${resourceList}
+
+**Suggestion:** For web development, start with freeCodeCamp and W3Schools. For networking and IT Support, try Cisco Networking Academy and Microsoft Learn. 💻`;
   }
 
-  // "Let's chat!" (maikling message lang para hindi ma-hijack ang ibang tanong)
+  // LET'S CHAT
   if (
     q.split(" ").length <= 6 &&
     /\b(lets chat|let us chat|lets talk|let us talk|can we chat|just chat|chat tayo|usap tayo|kwentuhan tayo)\b/.test(q)
@@ -721,14 +734,14 @@ if (
       : "Hello, and welcome to Jay's portfolio! I'm happy to help. You can ask me about Jay's skills, internship experience, education, career goals, or how to contact him.";
   }
 
-  // "Career goals"
+  // CAREER GOALS
   if (/\b(career goals?|career objectives?)\b/.test(q)) {
     return tl
       ? "Naghahanap po si Jay ng entry-level opportunities gaya ng IT Support, Data Encoder, at iba pang computer-based roles. Interesado rin po siya sa UI/UX design at patuloy na pag-develop ng kanyang technical skills."
       : "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
   }
 
-  // "Contact Jay"
+  // CONTACT JAY
   if (/\b(contact jay|reach jay|get in touch with jay)\b/.test(q)) {
     return tl
       ? `Maaari po ninyong makontak si Jay sa mga detalyeng ito:\n\n${contactBlock()}`
@@ -739,7 +752,7 @@ if (
     return getProfessionalAnswer(q, tl);
   }
 
-  // Follow-up reactions
+  // FOLLOW-UP REACTIONS
   if (
     /\b(pag asa agad|crush lang|crush lang sinabi ko|di ko naman tinanong|hindi ko naman tinanong|iba tinanong ko|iba ang tanong|advance ka naman|ang bilis mo naman)\b/.test(q)
   ) {
@@ -756,53 +769,53 @@ if (
     ]);
   }
 
-  // Lerry: sasagot lang kapag tinanong si Lerry
-  if (/\b(lerry|fortuno)\b/.test(q)) {
-  if (pro) return proDeflect(tl);
-
-  if (tl) {
-    return "Si Lerry Fortuno ay kaklase ni Jay sa TESDA Data Analytics III. 😊";
-  }
-
-  return "Lerry Fortuno is Jay's classmate from TESDA Data Analytics III. 😊";
-  }
+  // DIRECT QUESTION ABOUT LERRY BEING A CRUSH
+  if (
+    /\b(lerry|fortuno)\b/.test(q) &&
+    /\b(crush|gusto|type|nagustuhan|may gusto)\b/.test(q)
+  ) {
+    if (pro) return proDeflect(tl);
 
     return randomReply([
-      "Lerry Fortuno is one of Jay's classmates in TESDA Data Analytics III. 👀 Is that the crush? Who knows! 🤫 No confirmation, we're playing it safe.",
-      "Lerry is a TESDA Data Analytics III classmate of Jay. 😄 Crush or not? We'll never tell! 🕵️ Playing it safe here."
+      "HAHAHAHA! Bakit si Lerry agad ang tinatanong mo? 😂 Wala akong confirmation o denial dito!",
+      "Uy, may specific name na! HAHAHA! Classified information muna. 🤐",
+      "Hala, bakit parang may investigation? Wala akong aaminin! CHAROT! 😂",
+      "Nice try! Pero hindi ako basta-basta nagbibigay ng confirmation. HAHAHA! 🤣"
     ]);
   }
 
-  // TESDA: crush among classmates
+  // TESDA CRUSH QUESTIONS
   if (
     /\b(crush|gusto|type|nagustuhan)\b/.test(q) &&
-    /\b(tesda|data analytics|classmate|classmates|kaklase|batchmate|batchmates)\b/.test(q)
+    /\b(tesda|data analytics|classmate|classmates|kaklase|batchmate|batchmates|mate|mates)\b/.test(q)
   ) {
     if (pro) return proDeflect(tl);
 
     return randomReply([
-      "HAHAHAHA! 👀 May crush ba si Jay sa TESDA? Hmmmm... malay mo meron! 🤫 Basta kung ikaw ang nagtatanong, edi ikaw na! CHAROT! 😂",
-      "UYYYY, chismosa/chismoso ka rin pala! 😭 Posible namang meron, posible ring wala. Pero kung ikaw ang hinahanap mo... ikaw na! HAHAHA! 🤣",
-      "Ay, classified yan! 🕵️ Malay mo meron, malay mo wala. Pero sa dami ng classmates niya sa Data Analytics III, hindi na ako magtataka. HAHAHA! 😂",
-      "HAHAHA! 😭 Walang confirmation, walang denial. Basta sabihin na lang nating... malay mo, ikaw na! CHAROT! 👀"
+      "HAHAHAHA! Bakit, may iniimbestigahan ka ba? Secret lang muna. 🤫",
+      "Ay, TESDA agad? Wala akong confirmation o denial. Next question! 😂",
+      "Classified information! Kahit anong tanong mo, hindi ako aamin. HAHAHA! 🤐",
+      "Hmmm, curious ka talaga ah! Basta focus muna tayo sa Data Analytics. CHAROT! 😂"
     ]);
   }
 
-  // TESDA: list of classmates
+  // TESDA CLASSMATES LIST
   if (
     /\b(tesda|data analytics)\b/.test(q) &&
-    /\b(classmate|classmates|kaklase|batchmate|batchmates|kabatch|kasama|kasamahan|sino sino|sinong)\b/.test(q)
+    /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasama|kasamahan|sino sino|sinong|mga)\b/.test(q)
   ) {
     if (pro) return proDeflect(tl);
 
-    const lines = TESDA_CLASSMATES.map(name => `- ${name}`).join("\n");
+    const lines = TESDA_CLASSMATES
+      .map((name, index) => `${index + 1}. ${name}`)
+      .join("\n");
 
     return tl
       ? `Eto ang mga kaklase ni Jay sa TESDA Data Analytics III:\n\n${lines}`
       : `Here are Jay's classmates in TESDA Data Analytics III:\n\n${lines}`;
   }
 
-  // TESDA: asking about one specific classmate
+  // SPECIFIC TESDA CLASSMATE
   const tesdaMatches = findTesdaClassmates(q);
 
   if (tesdaMatches.length > 0 && tesdaMatches.length <= 3) {
@@ -811,13 +824,22 @@ if (
     return tesdaMatches
       .map(name =>
         tl
-          ? `${name} – kaklase ni Jay sa TESDA Data Analytics III.`
+          ? `${name} ay kaklase ni Jay sa TESDA Data Analytics III.`
           : `${name} is one of Jay's classmates in TESDA Data Analytics III.`
       )
       .join("\n\n");
   }
 
-  // Hugot
+  // ORDINARY QUESTIONS ABOUT LERRY
+  if (/\b(lerry|fortuno)\b/.test(q)) {
+    if (pro) return proDeflect(tl);
+
+    return tl
+      ? "Si Lerry Fortuno ay kaklase ni Jay sa TESDA Data Analytics III. 😊"
+      : "Lerry Fortuno is Jay's classmate from TESDA Data Analytics III. 😊";
+  }
+
+  // HUGOT
   if (
     /\b(hugot|hugot lines|banat|patama lines|hugot naman|may hugot ka|hugot nga)\b/.test(q)
   ) {
@@ -825,20 +847,20 @@ if (
     return randomReply(HUGOT_LINES);
   }
 
-  // Crush identity
+  // CRUSH IDENTITY
   if (
     /\b(sino crush|sino ang crush|sino crush nya|sino crush niya|sino yung crush|sino ung crush|pangalan ng crush|name ng crush|who is the crush|who is his crush|may alam ka ba|may alam kaba|kilala mo ba yung crush|kilala mo ba crush)\b/.test(q)
   ) {
     if (pro) return proDeflect(tl);
 
     return randomReply([
-      "UYYYY, curious ka rin pala! 👀 HAHAHA! May alam ako, pero classified information muna. Baka ma-leak ang tea! 🤫🤣",
+      "UYYYY, curious ka rin pala! 👀 HAHAHA! Classified information muna. 🤫🤣",
       "Ay, secret! 🤐 Hindi basta-basta nilalabas ang pangalan sa investigation na 'to. May warrant ka ba? HAHAHA! 🕵️😂",
       "Hmmmm, bakit? May balak ka bang maging detective? 👀 HAHAHA! Secret muna tayo. 🤫"
     ]);
   }
 
-  // Friends
+  // FRIENDS
   let matchedFriends = FRIENDS.filter(friend => friend.match.test(q));
 
   if (matchedFriends.length === 0 && /\barjay\b/.test(q)) {
@@ -851,10 +873,8 @@ if (
     return matchedFriends.map(friend => friendInfo(friend, tl)).join("\n\n");
   }
 
-  // Friends list
-  if (
-    /\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)
-  ) {
+  // FRIENDS LIST
+  if (/\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)) {
     if (pro) return proDeflect(tl);
 
     const lines = FRIENDS.map(friend => friendListLine(friend, tl)).join("\n");
@@ -864,7 +884,7 @@ if (
       : `Here are Jay's friends:\n\n${lines}\n\nWant to know more about any of them? Just ask for their name. 😊`;
   }
 
-  // Greetings
+  // GREETINGS
   if (
     /^(hi|hello|hey|hello there|hi there|good morning|good afternoon|good evening|magandang umaga|magandang hapon|magandang gabi|magandang araw|kumusta|kamusta|uy|hoy)( po| bot| jay| there)?$/.test(q)
   ) {
@@ -879,13 +899,13 @@ if (
     }
 
     return randomReply([
-      "Hello! 👋 Welcome sa portfolio ni Jay! Tanong ka lang. Pwede rin tayong mag-chikahan, basta huwag mo akong gawing love advice expert. HAHAHA! 😂",
-      "Uy, hello! 😂 Anong ganap? May itatanong ka ba tungkol kay Jay o napadaan ka lang para mang-chismis? CHAROT! 👀",
+      "Hello! 👋 Welcome sa portfolio ni Jay! Tanong ka lang. Pwede rin tayong mag-chikahan. HAHAHA! 😂",
+      "Uy, hello! 😂 Anong ganap? May itatanong ka ba tungkol kay Jay o napadaan ka lang? CHAROT! 👀",
       "Helloooo! 😎 Welcome! Ako ang chatbot ni Jay—available 24/7, unlike ibang tao na seen-zoned ka lang. CHAROT! 😭🤣"
     ]);
   }
 
-  // Social media
+  // SOCIAL MEDIA
   const asksSocial =
     /\b(facebook|fb|instagram|insta|ig|social media|socials)\b/.test(q);
 
@@ -901,11 +921,11 @@ if (
 
     return randomReply([
       `Eto social media ni Jay! 😂\n\nFacebook: ${FACEBOOK_URL}\nInstagram: ${INSTAGRAM_URL}\n\nI-follow mo ba o mag-i-investigate ka lang? CHAROT! 🤣`,
-      `Ayan oh! 👀\n\nFacebook: ${FACEBOOK_URL}\nInstagram: ${INSTAGRAM_URL}\n\nFollow responsibly ha. Bawal mag-online detective nang walang tulog! HAHAHA! 😂`
+      `Ayan oh! 👀\n\nFacebook: ${FACEBOOK_URL}\nInstagram: ${INSTAGRAM_URL}\n\nFollow responsibly ha. HAHAHA! 😂`
     ]);
   }
 
-  // Location
+  // LOCATION
   if (
     /\b(taga saan|taga san|saan nakatira|saan galing|where is jay from|where does jay live|where are you from|where is he from|location ni jay|jay location)\b/.test(q)
   ) {
@@ -918,7 +938,7 @@ if (
     return "Taga Tumauini, Isabela, Philippines si Jay. 📍 Ako naman ay chatbot niya, kaya wala akong sariling bahay. HAHAHA! 😄";
   }
 
-  // Introduction
+  // INTRODUCTION
   if (
     /\b(who is jay|who is jay christian|tell me about jay|introduce jay|about jay|sino si jay|pakilala si jay|kwento tungkol kay jay)\b/.test(q)
   ) {
@@ -931,7 +951,7 @@ if (
     return "Jay Christian Baccay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. He completed an internship at the Philippine Statistics Authority and has skills in web development, basic IT support, and data entry. He is shy at first, but eager to learn.";
   }
 
-  // Relationship status
+  // RELATIONSHIP STATUS
   if (
     /\b(single|may jowa|may girlfriend|may boyfriend|may partner|may asawa|taken ba|in a relationship|love life|jowa ni jay|girlfriend ni jay|boyfriend ni jay)\b/.test(q)
   ) {
@@ -944,7 +964,7 @@ if (
     ]);
   }
 
-  // Picture-related questions
+  // PICTURE QUESTIONS — NO UNVERIFIED CLAIMS
   if (
     /\b(picture|photo|pic|selfie|larawan)\b/.test(q) &&
     /\b(crush|sila|magkasama|jay|niya|nya|kayo|dalawa|together)\b/.test(q)
@@ -952,26 +972,26 @@ if (
     if (pro) return proDeflect(tl);
 
     return randomReply([
-      "HAHAHAHA! 📸 May picture na raw silang together! Pero reminder: picture lang ang confirmed, hindi relationship status. Huwag tayong gumawa ng season 2 agad! 😭🤣",
-      "May picture daw sila together! 👀📸 Pero hindi porket magkasama sa picture, may forever na. Baka photographer lang ang may magandang angle. CHAROT! 😂",
-      "May souvenir na raw! HAHAHA! 📸 Pero ang tanong: picture lang ba o may plot twist? Hindi natin alam—huwag muna tayong gumawa ng teleserye! 🤣"
+      "HAHAHA! Wala akong sapat na impormasyon tungkol diyan. Huwag muna tayong gumawa ng teleserye! 😂",
+      "Uy, detective mode! 🕵️ Hindi ako mag-a-assume kung walang confirmed information. HAHAHA!",
+      "Picture investigation na ba ito? HAHAHA! Pero hindi ako gagawa ng kuwento na hindi naman confirmed. 🤣"
     ]);
   }
 
-  // Chances
+  // CHANCES — NO ASSUMPTIONS
   if (
     /\b(may pag asa|pag asa ba|pag asa pa|may chance|chance ba|gusto ba siya|gusto ba sya|gusto siya ng crush|gusto sya ng crush|mutual ba|type ba siya|type ba sya|mahal ba siya|mahal ba sya|walang pag asa|wala syang pag asa|wala siyang pag asa|no chance|umaasa ba ako|asa pa ba ako|may chance pa|may pag asa pa)\b/.test(q)
   ) {
     if (pro) return proDeflect(tl);
 
     return randomReply([
-      "HAHAHAHA! 😭📸 May picture na nga raw sila, pero hindi natin alam ang tunay na feelings ng crush niya. Malay natin, may plot twist! CHAROT! 🤣👀",
-      "May chance ba? Hindi tayo fortune teller, bes! HAHAHA! 🔮 Ang alam lang natin, may picture. Yung future, hindi pa naka-upload. 😂",
-      "Ang sagot ay... hindi ko alam! HAHAHA! 😭 Hindi kasi kasama sa OJT ni Jay ang pagbabasa ng isip. Hintayin natin ang next episode! 🤣"
+      "HAHAHAHA! Hindi tayo fortune teller, bes! 🔮 Hindi ko alam ang tunay na feelings ng ibang tao. 😂",
+      "Ang sagot ay... hindi ko alam! HAHAHA! 😭 Hindi kasama sa OJT ni Jay ang pagbabasa ng isip. 🤣",
+      "Huwag muna tayong mag-assume! Malay mo, may plot twist. CHAROT! 😂"
     ]);
   }
 
-  // Personality
+  // PERSONALITY
   if (
     /\b(shy|mahiyain|personality|ugali ni jay|personality ni jay)\b/.test(q)
   ) {
@@ -984,7 +1004,7 @@ if (
     return "Mahiyain si Jay, lalo na kapag bagong kakilala. 😊 Pero willing siyang matuto, makipag-collaborate, at mag-improve. Tahimik minsan, pero hindi ibig sabihing walang laman ang utak! CHAROT! 😂";
   }
 
-  // Web development
+  // WEB DEVELOPMENT
   if (
     /\b(html|css|javascript|web development|web developer|build a system|building systems|gumawa ng system|gumawa ng website|website development|coding|programming skills)\b/.test(q)
   ) {
@@ -993,7 +1013,7 @@ if (
       : "Jay can use HTML, CSS, and JavaScript to build websites and web-based systems. He also has experience in basic IT support, data entry and verification, and Figma/Canva. I won't describe him as an expert in other technologies unless that is confirmed.";
   }
 
-  // Technical skills
+  // TECHNICAL SKILLS
   if (
     /\b(skill|skills|technical skills|technical skill|kakayahan|ano ang alam ni jay|what can jay do)\b/.test(q)
   ) {
@@ -1002,7 +1022,7 @@ if (
       : "Jay's technical skills include:\n- HTML, CSS, and JavaScript for websites and web-based systems\n- Windows 10/11 installation and configuration\n- Basic computer hardware and printer troubleshooting\n- Basic LAN/Wi-Fi troubleshooting\n- Data entry, verification, and digital record management\n- Basic technical support / help desk\n- Microsoft Word and basic Excel\n- Data Analytics training through TESDA\n- Beginner-level Figma and Canva for UI/UX and visual design\n\nHis skills are at a basic and developing level, so I won't present them as expert-level.";
   }
 
-  // Internship and work experience
+  // INTERNSHIP AND WORK EXPERIENCE
   if (
     /\b(psa|internship|ojt|intern experience|work experience|experience ni jay|trabaho ni jay)\b/.test(q)
   ) {
@@ -1011,7 +1031,7 @@ if (
       : "Jay completed an internship as an IT / Registration Support Intern at the Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office in City of Ilagan, from December 2025 to April 2026, for a total of 486 hours. His tasks included PhilSys data entry and verification, document processing, digital records management, NAS uploads, temporary PhilSys ID processing, FindMyTRN checks, and basic computer and printer support. This was an internship, not permanent employment.";
   }
 
-  // Education
+  // EDUCATION
   if (
     /\b(education|educational background|graduate|college|school|degree|kurso|paaralan|what course|anong course)\b/.test(q)
   ) {
@@ -1020,7 +1040,7 @@ if (
       : "Jay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. in Isabela.";
   }
 
-  // Career interests
+  // CAREER INTERESTS
   if (
     /\b(career goal|career objective|looking for work|job|trabaho|anong trabaho|what job|career interests|job interests)\b/.test(q)
   ) {
@@ -1029,7 +1049,7 @@ if (
       : "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
   }
 
-  // Design tools
+  // DESIGN TOOLS
   if (
     /\b(figma|canva|ui.?ux|design skills|graphic design)\b/.test(q)
   ) {
@@ -1038,7 +1058,7 @@ if (
       : "Jay has experience with Figma and Canva and is interested in UI/UX design. His level with design tools is still beginner, and he continues to practice and improve.";
   }
 
-  // Data Analytics
+  // DATA ANALYTICS
   if (
     /\b(data analytics|tesda|certificate|certification|training)\b/.test(q)
   ) {
@@ -1047,7 +1067,7 @@ if (
       : "Jay has Data Analytics training/certificate through TESDA. He also has experience in data entry, data verification, and digital records management from his PSA internship.";
   }
 
-  // Thanks
+  // THANKS
   if (/\b(thank you|thanks|salamat|thank u)\b/.test(q)) {
     const formalThanks =
       pro || /\b(po|thank you for|appreciate)\b/.test(q);
@@ -1065,7 +1085,7 @@ if (
     ]);
   }
 
-  // Goodbye
+  // GOODBYE
   if (/^(bye|goodbye|paalam|see you|ingat)$/.test(q)) {
     if (pro) {
       return tl
@@ -1082,9 +1102,9 @@ if (
   return null;
 }
 
-// ==========================================
+//=============
 // VIBE FALLBACK
-// ==========================================
+// ===============
 
 function getVibeFallback(mode, tl, reason) {
   const limited = reason === "daily_limit" || reason === "ip_limit";
