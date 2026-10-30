@@ -523,6 +523,8 @@ function detectMode(message, q, history = []) {
   if (isPlayful(message, q)) return "playful";
 
   if (Array.isArray(history)) {
+    // Professional mode only carries over to the very next message,
+    // so casual questions are not stuck in professional mode.
     const recentUserMessages = history
       .filter(
         item =>
@@ -530,7 +532,7 @@ function detectMode(message, q, history = []) {
           item.role === "user" &&
           typeof item.text === "string"
       )
-      .slice(-3);
+      .slice(-1);
 
     const recentlyProfessional = recentUserMessages.some(item =>
       PRO_RE.test(normalizeMessage(item.text))
@@ -872,9 +874,23 @@ ${resourceList}
   }
 
   // TESDA CLASSMATES LIST
+  // Works when the message itself mentions TESDA, OR when TESDA was just
+  // mentioned in the last two messages (e.g. "nag tesda ba si jay?" then
+  // "sino mga mate nya?").
+  const recentTesda =
+    Array.isArray(history) &&
+    history.slice(-2).some(
+      item =>
+        item &&
+        typeof item.text === "string" &&
+        /\b(tesda|data analytics)\b/.test(normalizeMessage(item.text))
+    );
+
   if (
-    /\b(tesda|data analytics)\b/.test(q) &&
-    /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasama|kasamahan|sino sino|sinong|mga)\b/.test(q)
+    (/\b(tesda|data analytics)\b/.test(q) &&
+      /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasama|kasamahan|sino sino|sinong|mga)\b/.test(q)) ||
+    (recentTesda &&
+      /\b(classmate|classmates|kaklase|batchmate|batchmates|mate|mates|kabatch|kasamahan)\b/.test(q))
   ) {
     if (pro) return proDeflect(tl);
 
@@ -1313,7 +1329,9 @@ const BREVITY_RULE =
 const GROK_API_KEY =
   process.env.GROK_API_KEY || process.env.XAI_API_KEY;
 
-const MODELS = ["grok-4.7"];
+// Pwede mong palitan ang model sa Render (Environment variable: GROK_MODEL)
+// nang hindi ginagalaw ang code. Default: grok-4.7
+const MODELS = [process.env.GROK_MODEL || "grok-4.7"];
 const GROK_TIMEOUT_MS = 120000;
 
 // ==========================================
