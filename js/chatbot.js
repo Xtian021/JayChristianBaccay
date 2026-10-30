@@ -1,7 +1,8 @@
+
 /* =========================================================
-   CHATBOT API CONFIGURATION
-   Local: localhost
-   Online: Render Node.js Web Service
+   JAY CHRISTIAN BACCAY - PORTFOLIO CHATBOT
+   Backend: Render Node.js Web Service
+   Version: 2026-10-30
    ========================================================= */
 
 const CHAT_API =
@@ -10,6 +11,10 @@ const CHAT_API =
         : "https://jaychristianbaccay.onrender.com/chat";
 
 const CHAT_TIMEOUT = 135000;
+
+console.log("Chatbot JS Version: 2026-10-30");
+console.log("Chatbot API:", CHAT_API);
+console.log("Portfolio origin:", location.origin);
 
 document.addEventListener("DOMContentLoaded", () => {
     const launcher = document.getElementById("chatbot-launcher");
@@ -22,13 +27,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const suggestions = document.querySelector(".chatbot-suggestions");
 
     if (
-        !launcher ||
-        !panel ||
-        !closeButton ||
-        !form ||
-        !input ||
-        !messages ||
-        !sendButton
+        !launcher || !panel || !closeButton ||
+        !form || !input || !messages || !sendButton
     ) {
         console.error("Chatbot HTML elements are missing.");
         return;
@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const history = [];
     let isThinking = false;
 
-    // Escape HTML to prevent HTML injection.
     function escapeHTML(text) {
         return String(text ?? "").replace(/[&<>"']/g, char => ({
             "&": "&amp;",
@@ -48,21 +47,15 @@ document.addEventListener("DOMContentLoaded", () => {
         })[char]);
     }
 
-    // Allow only HTTP and HTTPS URLs.
     function isSafeURL(url) {
         try {
             const parsed = new URL(url);
-
-            return (
-                parsed.protocol === "http:" ||
-                parsed.protocol === "https:"
-            );
+            return parsed.protocol === "http:" || parsed.protocol === "https:";
         } catch {
             return false;
         }
     }
 
-    // Format inline Markdown safely.
     function inlineMarkdown(text) {
         let safe = escapeHTML(text);
         const placeholders = [];
@@ -73,12 +66,10 @@ document.addEventListener("DOMContentLoaded", () => {
             return token;
         }
 
-        // Inline code.
-        safe = safe.replace(/`([^`\n]+)`/g, (match, code) => {
-            return savePlaceholder(`<code>${code}</code>`);
-        });
+        safe = safe.replace(/`([^`\n]+)`/g, (match, code) =>
+            savePlaceholder(`<code>${code}</code>`)
+        );
 
-        // Markdown links.
         safe = safe.replace(
             /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi,
             (match, label, url) => {
@@ -90,11 +81,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         );
 
-        // Bold.
         safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
         safe = safe.replace(/__(.+?)__/g, "<strong>$1</strong>");
 
-        // Italic.
         safe = safe.replace(
             /(^|[^\*])\*([^\*\n]+)\*(?!\*)/g,
             "$1<em>$2</em>"
@@ -105,18 +94,13 @@ document.addEventListener("DOMContentLoaded", () => {
             "$1<em>$2</em>"
         );
 
-        // Strikethrough.
         safe = safe.replace(/~~(.+?)~~/g, "<del>$1</del>");
 
-        // Plain URLs.
         safe = safe.replace(
             /(^|[\s(])(https?:\/\/[^\s<]+)/gi,
             (match, prefix, url) => {
                 const trailingMatch = url.match(/[.,!?;:]+$/);
-                const trailing = trailingMatch
-                    ? trailingMatch[0]
-                    : "";
-
+                const trailing = trailingMatch ? trailingMatch[0] : "";
                 const cleanURL = trailing
                     ? url.slice(0, -trailing.length)
                     : url;
@@ -127,7 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         );
 
-        // Restore protected code and links.
         safe = safe.replace(
             /CHATPLACEHOLDER(\d+)END/g,
             (match, index) => placeholders[Number(index)] || ""
@@ -136,7 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return safe;
     }
 
-    // Format complete messages.
     function formatMessage(text) {
         const lines = String(text ?? "")
             .replace(/\r\n?/g, "\n")
@@ -150,7 +132,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!inList) return;
 
             output.push(listType === "ol" ? "</ol>" : "</ul>");
-
             inList = false;
             listType = "";
         }
@@ -164,9 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (!inList || listType !== type) {
                     closeList();
-
                     output.push(type === "ol" ? "<ol>" : "<ul>");
-
                     inList = true;
                     listType = type;
                 }
@@ -174,7 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 output.push(
                     `<li>${inlineMarkdown((unordered || ordered)[1])}</li>`
                 );
-
                 continue;
             }
 
@@ -189,11 +167,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (heading) {
                 const level = heading[1].length;
-
                 output.push(
                     `<h${level}>${inlineMarkdown(heading[2])}</h${level}>`
                 );
-
                 continue;
             }
 
@@ -201,14 +177,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         closeList();
-
         return output.join("");
     }
 
-    // Add a message to the chat.
     function addMessage(text, sender) {
         const element = document.createElement("div");
-
         element.className = `chat-message ${sender}`;
 
         if (sender === "bot") {
@@ -219,18 +192,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         messages.appendChild(element);
         messages.scrollTop = messages.scrollHeight;
-
         return element;
     }
 
-    // Open chatbot.
     function openChat() {
         panel.hidden = false;
         launcher.setAttribute("aria-expanded", "true");
         input.focus();
     }
 
-    // Close chatbot.
     function closeChat() {
         panel.hidden = true;
         launcher.setAttribute("aria-expanded", "false");
@@ -240,7 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
     launcher.addEventListener("click", openChat);
     closeButton.addEventListener("click", closeChat);
 
-    // Enter to send; Shift + Enter for a new line.
     input.addEventListener("keydown", event => {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
@@ -253,7 +222,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Suggested questions.
     if (suggestions) {
         suggestions.addEventListener("click", event => {
             const button = event.target.closest("button[data-question]");
@@ -261,7 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!button || isThinking) return;
 
             const question = button.dataset.question?.trim();
-
             if (!question) return;
 
             input.value = question;
@@ -274,15 +241,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // =====================================================
-    // SEND MESSAGE TO NODE.JS BACKEND
-    // =====================================================
-
     form.addEventListener("submit", async event => {
         event.preventDefault();
 
         const userMessage = input.value.trim();
-
         if (!userMessage || isThinking) return;
 
         isThinking = true;
@@ -294,7 +256,6 @@ document.addEventListener("DOMContentLoaded", () => {
         sendButton.disabled = true;
 
         const loadingMessage = addMessage("Thinking...", "bot");
-
         loadingMessage.classList.add("chat-thinking");
         loadingMessage.setAttribute("aria-live", "polite");
 
@@ -312,9 +273,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }, CHAT_TIMEOUT);
 
         try {
-            console.log("Chatbot API:", CHAT_API);
-            console.log("Portfolio origin:", location.origin);
-
             const response = await fetch(CHAT_API, {
                 method: "POST",
                 headers: {
@@ -329,7 +287,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const responseText = await response.text();
-
             let data = {};
 
             try {
@@ -360,19 +317,11 @@ document.addEventListener("DOMContentLoaded", () => {
             loadingMessage.classList.remove("chat-thinking");
             loadingMessage.innerHTML = formatMessage(data.answer);
 
-            // Save successful exchanges only.
             history.push(
-                {
-                    role: "user",
-                    text: userMessage
-                },
-                {
-                    role: "model",
-                    text: data.answer
-                }
+                { role: "user", text: userMessage },
+                { role: "model", text: data.answer }
             );
 
-            // Keep recent context.
             if (history.length > 20) {
                 history.splice(0, history.length - 20);
             }
@@ -387,11 +336,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error.name === "AbortError") {
                 loadingMessage.textContent =
                     "Matagal ang response ng server 😅 Lumampas sa 135 seconds. Subukan ulit mamaya.";
-
             } else if (error instanceof TypeError) {
                 loadingMessage.textContent =
                     "Hindi ako makakonekta sa chatbot server 😅 Pakisuri ang backend connection o CORS settings.";
-
             } else {
                 loadingMessage.textContent =
                     `May naging problema sa chatbot: ${error.message}`;
@@ -402,7 +349,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window.clearTimeout(timeoutId);
 
             isThinking = false;
-
             input.disabled = false;
             sendButton.disabled = false;
 
