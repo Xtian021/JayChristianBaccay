@@ -1,13 +1,18 @@
 
+// =========================================================
+// CHATBOT API CONFIGURATION
 // Local: localhost
 // Online: deployed Render server
+// =========================================================
 
 const CHAT_API =
     ["localhost", "127.0.0.1"].includes(location.hostname)
         ? "http://localhost:3000/chat"
         : "https://jaychristianbaccay.onrender.com/chat";
 
-const CHAT_TIMEOUT = 65000;
+// Backend Grok timeout is 120 seconds.
+// Give the frontend extra time before aborting.
+const CHAT_TIMEOUT = 135000;
 
 document.addEventListener("DOMContentLoaded", () => {
     const launcher = document.getElementById("chatbot-launcher");
@@ -163,9 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!inList || listType !== type) {
                     closeList();
 
-                    output.push(
-                        type === "ol" ? "<ol>" : "<ul>"
-                    );
+                    output.push(type === "ol" ? "<ol>" : "<ul>");
 
                     inList = true;
                     listType = type;
@@ -253,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Suggested questions from index.html.
+    // Suggested questions.
     if (suggestions) {
         suggestions.addEventListener("click", event => {
             const button = event.target.closest("button[data-question]");
@@ -274,7 +277,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Send message to Node.js backend.
+    // =====================================================
+    // SEND MESSAGE TO NODE.JS BACKEND
+    // =====================================================
+
     form.addEventListener("submit", async event => {
         event.preventDefault();
 
@@ -299,9 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const thinkingAnimation = window.setInterval(() => {
             dots = (dots + 1) % 4;
-
-            loadingMessage.textContent =
-                "Thinking" + ".".repeat(dots);
+            loadingMessage.textContent = "Thinking" + ".".repeat(dots);
         }, 400);
 
         const controller = new AbortController();
@@ -311,10 +315,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }, CHAT_TIMEOUT);
 
         try {
+            console.log("Sending chatbot request to:", CHAT_API);
+
             const response = await fetch(CHAT_API, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
                 },
                 body: JSON.stringify({
                     message: userMessage,
@@ -323,11 +330,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 signal: controller.signal
             });
 
-            const data = await response.json().catch(() => ({}));
+            // Read response safely, even if the server returns HTML.
+            const responseText = await response.text();
+
+            let data = {};
+
+            try {
+                data = responseText ? JSON.parse(responseText) : {};
+            } catch {
+                throw new Error(
+                    `Invalid server response (HTTP ${response.status}). Check Render logs.`
+                );
+            }
 
             if (!response.ok) {
                 throw new Error(
                     data.error ||
+                    data.message ||
                     `Server returned HTTP ${response.status}.`
                 );
             }
@@ -336,9 +355,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 typeof data.answer !== "string" ||
                 !data.answer.trim()
             ) {
-                throw new Error("The AI returned an empty answer.");
+                throw new Error(
+                    data.error || "The AI returned an empty answer."
+                );
             }
 
+            // Display successful answer.
             loadingMessage.classList.remove("chat-thinking");
             loadingMessage.innerHTML = formatMessage(data.answer);
 
@@ -354,10 +376,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             );
 
-            // Keep recent context without growing forever.
+            // Keep recent context.
             if (history.length > 20) {
                 history.splice(0, history.length - 20);
             }
+
+            console.log("Chatbot response received successfully.");
 
         } catch (error) {
             console.error("Chatbot error:", error);
@@ -366,11 +390,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (error.name === "AbortError") {
                 loadingMessage.textContent =
-                    "Medyo natagalan ako HAHAHA 😅 Lumampas sa 65 seconds ang request. Subukan ulit mamaya.";
+                    "Matagal ang response ng server 😅 Lumampas sa 135 seconds. Subukan ulit mamaya.";
 
             } else if (error instanceof TypeError) {
                 loadingMessage.textContent =
-                    "Ay, hindi ako makakonekta sa chatbot server 😅 Subukan ulit mamaya, o i-contact na lang si Jay sa Contact section.";
+                    "Hindi ako makakonekta sa chatbot server 😅 Posibleng connection o CORS problem. Subukan ulit mamaya.";
 
             } else {
                 loadingMessage.textContent =
