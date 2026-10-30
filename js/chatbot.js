@@ -1,17 +1,15 @@
 
-// =========================================================
-// CHATBOT API CONFIGURATION
-// Local: localhost
-// Online: deployed Render server
-// =========================================================
+/* =========================================================
+   CHATBOT API CONFIGURATION
+   Local: localhost
+   Online: Render Node.js Web Service
+   ========================================================= */
 
 const CHAT_API =
     ["localhost", "127.0.0.1"].includes(location.hostname)
         ? "http://localhost:3000/chat"
-        : "https://jaychristianbaccay.onrender.com/chat";
+        : "https://xtianbaccay.onrender.com/chat";
 
-// Backend Grok timeout is 120 seconds.
-// Give the frontend extra time before aborting.
 const CHAT_TIMEOUT = 135000;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -315,7 +313,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }, CHAT_TIMEOUT);
 
         try {
-            console.log("Sending chatbot request to:", CHAT_API);
+            console.log("Chatbot API:", CHAT_API);
+            console.log("Portfolio origin:", location.origin);
 
             const response = await fetch(CHAT_API, {
                 method: "POST",
@@ -330,7 +329,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 signal: controller.signal
             });
 
-            // Read response safely, even if the server returns HTML.
             const responseText = await response.text();
 
             let data = {};
@@ -339,7 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 data = responseText ? JSON.parse(responseText) : {};
             } catch {
                 throw new Error(
-                    `Invalid server response (HTTP ${response.status}). Check Render logs.`
+                    `Invalid server response. HTTP ${response.status}.`
                 );
             }
 
@@ -360,7 +358,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
             }
 
-            // Display successful answer.
             loadingMessage.classList.remove("chat-thinking");
             loadingMessage.innerHTML = formatMessage(data.answer);
 
@@ -394,7 +391,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             } else if (error instanceof TypeError) {
                 loadingMessage.textContent =
-                    "Hindi ako makakonekta sa chatbot server 😅 Posibleng connection o CORS problem. Subukan ulit mamaya.";
+                    "Hindi ako makakonekta sa chatbot server 😅 Pakisuri ang backend connection o CORS settings.";
 
             } else {
                 loadingMessage.textContent =
