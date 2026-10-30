@@ -22,12 +22,15 @@ const CONTACT_PHONE = "09976432312";
 
 const PH_TIMEZONE = "Asia/Manila";
 
-const AI_PROVIDER = "Groq";
-const AI_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const AI_PROVIDER = "Grok (xAI)";
+const AI_API_URL = "https://api.x.ai/v1/chat/completions";
+
 const GROK_API_KEY =
-  process.env.GROK_API_KEY || process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
-const GROK_MODEL = process.env.GROK_MODEL || "llama-3.3-70b-versatile";
-const GROK_TIMEOUT_MS = 30000;
+  process.env.GROK_API_KEY ||
+  process.env.XAI_API_KEY;
+
+const GROK_MODEL = process.env.GROK_MODEL || "grok-4.7";
+const GROK_TIMEOUT_MS = 60000;
 const GROK_MAX_TOKENS = Number(process.env.GROK_MAX_TOKENS) || 800;
 
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
@@ -1173,7 +1176,7 @@ app.post("/chat", rateLimit, async (req, res) => {
 
     // 3. API key check
     if (!GROK_API_KEY) {
-      console.error("Missing AI API key.");
+      console.error("Missing xAI API key. Set GROK_API_KEY or XAI_API_KEY.");
       return respondFallback(res, mode, tagalog, "no_key");
     }
 
@@ -1225,7 +1228,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode}`
     );
 
-    // 7. Call Groq Chat Completions API
+    // 7. Call xAI Grok Chat Completions API
     const response = await fetch(AI_API_URL, {
       method: "POST",
       headers: {
@@ -1249,11 +1252,11 @@ app.post("/chat", rateLimit, async (req, res) => {
         data.message ||
         `HTTP ${response.status}`;
 
-      console.error("AI API error:", response.status, errorMessage);
+      console.error("xAI API error:", response.status, errorMessage);
 
       const limited =
         response.status === 429 ||
-        /quota|rate limit|resource exhausted|credit/i.test(errorMessage);
+        /quota|rate limit|resource exhausted|credit|billing/i.test(errorMessage);
 
       return respondFallback(
         res,
@@ -1267,7 +1270,7 @@ app.post("/chat", rateLimit, async (req, res) => {
     const answer = (data.choices?.[0]?.message?.content || "").trim();
 
     if (!answer) {
-      console.error("AI returned an empty response:", JSON.stringify(data));
+      console.error("Grok returned an empty response:", JSON.stringify(data));
       return respondFallback(res, mode, tagalog, "empty_response");
     }
 
@@ -1278,6 +1281,7 @@ app.post("/chat", rateLimit, async (req, res) => {
     return res.json({
       answer,
       source: "ai",
+      provider: AI_PROVIDER,
       model: GROK_MODEL,
       mode
     });
@@ -1306,7 +1310,7 @@ app.post("/chat", rateLimit, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Chatbot server running on port ${PORT}`);
   console.log(`AI provider: ${AI_PROVIDER}`);
-  console.log("AI API key configured:", Boolean(GROK_API_KEY));
+  console.log("xAI API key configured:", Boolean(GROK_API_KEY));
   console.log(`AI model: ${GROK_MODEL}`);
   console.log(`Daily API attempt limit: ${GROK_DAILY_LIMIT}`);
   console.log(`Per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
