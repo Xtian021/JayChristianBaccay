@@ -1,13 +1,11 @@
 
-// Local: gagamit ng localhost.
-// Online (GitHub Pages): gagamit ng deployed Render server.
-// Palitan ang PALITAN-MO-ITO ng actual Render URL mo.
+// Local: localhost
+// Online: deployed Render server
 
 const CHAT_API =
-    location.hostname === "localhost" ||
-    location.hostname === "127.0.0.1"
+    ["localhost", "127.0.0.1"].includes(location.hostname)
         ? "http://localhost:3000/chat"
-        : "https://PALITAN-MO-ITO.onrender.com/chat";
+        : "https://jaychristianbaccay.onrender.com/chat";
 
 const CHAT_TIMEOUT = 65000;
 
@@ -37,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const history = [];
     let isThinking = false;
 
-    // Escape HTML to prevent user or AI text from injecting HTML.
+    // Escape HTML to prevent HTML injection.
     function escapeHTML(text) {
         return String(text ?? "").replace(/[&<>"']/g, char => ({
             "&": "&amp;",
@@ -48,12 +46,15 @@ document.addEventListener("DOMContentLoaded", () => {
         })[char]);
     }
 
-    // Accept only HTTP and HTTPS URLs.
+    // Allow only HTTP and HTTPS URLs.
     function isSafeURL(url) {
         try {
             const parsed = new URL(url);
-            return parsed.protocol === "http:" ||
-                   parsed.protocol === "https:";
+
+            return (
+                parsed.protocol === "http:" ||
+                parsed.protocol === "https:"
+            );
         } catch {
             return false;
         }
@@ -70,18 +71,16 @@ document.addEventListener("DOMContentLoaded", () => {
             return token;
         }
 
-        // Protect inline code.
+        // Inline code.
         safe = safe.replace(/`([^`\n]+)`/g, (match, code) => {
             return savePlaceholder(`<code>${code}</code>`);
         });
 
-        // Protect Markdown links.
+        // Markdown links.
         safe = safe.replace(
             /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi,
             (match, label, url) => {
-                if (!isSafeURL(url)) {
-                    return label;
-                }
+                if (!isSafeURL(url)) return label;
 
                 return savePlaceholder(
                     `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
@@ -120,9 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     ? url.slice(0, -trailing.length)
                     : url;
 
-                if (!isSafeURL(cleanURL)) {
-                    return match;
-                }
+                if (!isSafeURL(cleanURL)) return match;
 
                 return `${prefix}<a href="${cleanURL}" target="_blank" rel="noopener noreferrer">${cleanURL}</a>${trailing}`;
             }
@@ -137,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return safe;
     }
 
+    // Format complete messages.
     function formatMessage(text) {
         const lines = String(text ?? "")
             .replace(/\r\n?/g, "\n")
@@ -199,9 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 continue;
             }
 
-            output.push(
-                `<div>${inlineMarkdown(line)}</div>`
-            );
+            output.push(`<div>${inlineMarkdown(line)}</div>`);
         }
 
         closeList();
@@ -209,6 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return output.join("");
     }
 
+    // Add a message to the chat.
     function addMessage(text, sender) {
         const element = document.createElement("div");
 
@@ -226,12 +223,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return element;
     }
 
+    // Open chatbot.
     function openChat() {
         panel.hidden = false;
         launcher.setAttribute("aria-expanded", "true");
         input.focus();
     }
 
+    // Close chatbot.
     function closeChat() {
         panel.hidden = true;
         launcher.setAttribute("aria-expanded", "false");
@@ -241,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
     launcher.addEventListener("click", openChat);
     closeButton.addEventListener("click", closeChat);
 
-    // Enter to send, Shift+Enter for a new line.
+    // Enter to send; Shift + Enter for a new line.
     input.addEventListener("keydown", event => {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
@@ -275,7 +274,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Send message to the Node.js backend.
+    // Send message to Node.js backend.
     form.addEventListener("submit", async event => {
         event.preventDefault();
 
@@ -355,7 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             );
 
-            // Keep recent context without letting history grow forever.
+            // Keep recent context without growing forever.
             if (history.length > 20) {
                 history.splice(0, history.length - 20);
             }
