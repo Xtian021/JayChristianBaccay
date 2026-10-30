@@ -69,10 +69,12 @@ setInterval(() => {
 }, RATE_WINDOW_MS).unref();
 
 // ==========================================
-// GROK DAILY LIMIT
+// GROK DAILY LIMIT (WITH CARRY-OVER)
 // ==========================================
 
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
+// Max na unused attempts na pwedeng idagdag sa susunod na araw.
+const GROK_MAX_CARRYOVER = Number(process.env.GROK_MAX_CARRYOVER) || 500;
 const PHILIPPINE_TIME_ZONE = "Asia/Manila";
 
 function getPhilippineDateKey() {
@@ -96,29 +98,39 @@ function getPhilippineDateKey() {
 
 let grokDailyUsage = {
   date: getPhilippineDateKey(),
-  attempts: 0
+  attempts: 0,
+  bonus: 0
 };
 
 function getDailyUsage() {
   const today = getPhilippineDateKey();
 
   if (grokDailyUsage.date !== today) {
+    const unused = Math.max(
+      0,
+      GROK_DAILY_LIMIT + grokDailyUsage.bonus - grokDailyUsage.attempts
+    );
+
     grokDailyUsage = {
       date: today,
-      attempts: 0
+      attempts: 0,
+      bonus: Math.min(unused, GROK_MAX_CARRYOVER)
     };
 
-    console.log("Grok daily usage counter reset:", today);
+    console.log(
+      `Grok daily usage counter reset: ${today} (carry-over: ${grokDailyUsage.bonus})`
+    );
   }
 
   return grokDailyUsage;
 }
 
+function getGrokLimitToday() {
+  return GROK_DAILY_LIMIT + getDailyUsage().bonus;
+}
+
 function getRemainingGrokAttempts() {
-  return Math.max(
-    0,
-    GROK_DAILY_LIMIT - getDailyUsage().attempts
-  );
+  return Math.max(0, getGrokLimitToday() - getDailyUsage().attempts);
 }
 
 setInterval(() => {
@@ -621,7 +633,7 @@ function proDeflect(tl) {
 // ==========================================
 
 // Lerry questions follow three rules:
-// 1) "Sino si Lerry?"            -> factual only
+// 1) "Sino si Lerry?"              -> factual only
 // 2) "Kaklase ba ni Jay si Lerry?" -> factual only
 // 3) "Crush ba ni Jay si Lerry?"   -> playful + mysterious, no confirm/deny
 // Ordinary questions never get crush jokes.
@@ -1323,7 +1335,9 @@ app.get("/health", (req, res) => {
     message: "Chatbot server is running.",
     provider: "Grok",
     apiKeyConfigured: Boolean(GROK_API_KEY),
-    grokDailyLimit: GROK_DAILY_LIMIT,
+    grokDailyLimit: getGrokLimitToday(),
+    grokBaseDailyLimit: GROK_DAILY_LIMIT,
+    grokCarryOver: usage.bonus,
     grokPerIpDailyLimit: GROK_PER_IP_DAILY_LIMIT,
     grokAttemptsUsed: usage.attempts,
     grokAttemptsRemaining: getRemainingGrokAttempts(),
@@ -1461,7 +1475,7 @@ app.post("/chat", rateLimit, async (req, res) => {
     for (const model of MODELS) {
       const usage = getDailyUsage();
 
-      if (usage.attempts >= GROK_DAILY_LIMIT) {
+      if (usage.attempts >= getGrokLimitToday()) {
         return respondFallback(res, mode, tagalog, "daily_limit");
       }
 
@@ -1469,7 +1483,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       ipUsage.attempts++;
 
       console.log(
-        `Grok API attempt ${usage.attempts}/${GROK_DAILY_LIMIT} using ${model} (mode: ${mode})`
+        `Grok API attempt ${usage.attempts}/${getGrokLimitToday()} using ${model} (mode: ${mode})`
       );
 
       try {
@@ -1586,7 +1600,7 @@ app.listen(PORT, () => {
   console.log(`Chatbot server running at http://localhost:${PORT}`);
   console.log("AI provider: Grok");
   console.log("Grok API key configured:", Boolean(GROK_API_KEY));
-  console.log(`Grok daily API attempt limit: ${GROK_DAILY_LIMIT}`);
+  console.log(`Grok daily API attempt limit: ${GROK_DAILY_LIMIT} (+ carry-over, max ${GROK_MAX_CARRYOVER})`);
   console.log(`Grok per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
   console.log(`Daily counter resets at midnight ${PHILIPPINE_TIME_ZONE}.`);
 });
