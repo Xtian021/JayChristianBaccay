@@ -1,4 +1,3 @@
-
 require("dotenv").config({
   path: require("path").join(__dirname, ".env")
 });
@@ -293,6 +292,17 @@ const TESDA_CLASSMATES = [
 const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii"]);
 const SKIP_FIRST_NAME_ONLY = new Set(["jay", "angel", "ed"]);
 
+function normalizeMessage(message) {
+  return message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9\s.-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const tesdaIndex = TESDA_CLASSMATES.map(name => {
   const tokens = normalizeMessage(name)
     .replace(/\./g, "")
@@ -322,6 +332,10 @@ function findTesdaClassmates(q) {
 function tesdaForPrompt() {
   return TESDA_CLASSMATES.map(name => `  - ${name}`).join("\n");
 }
+
+// ==========================================
+// SYSTEM PROMPT
+// ==========================================
 
 const SYSTEM_PROMPT = `
 You are the personal portfolio assistant for Jay Christian Baccay.
@@ -404,22 +418,19 @@ PEOPLE JAY MENTIONED:
   about a friend, give only that friend's info; if asked who his friends are,
   list them):
 ${friendsForPrompt()}
-- Jay's TESDA Data Analytics III classmates (share NAMES ONLY, never invent
-  any other detail about them; if asked who his classmates are, list them):
+- Jay's TESDA Data Analytics III classmates:
 ${tesdaForPrompt()}
-- If asked whether Jay has a crush among his TESDA classmates, answer playfully
-  and without naming anyone, for example that maybe there is, and "basta ikaw na"
-  if the visitor is the one asking. Never confirm or name a specific person.
-- About Lerry Fortuno: ONLY talk about Lerry if the visitor asks about Lerry.
-  Never bring up Lerry on your own, never list Lerry as the crush, and never
-  hint at Lerry when the visitor asks about the crush in general. If asked about
-  Lerry, say Lerry is a TESDA classmate and answer playfully and playsafe, like
-  "malay mo crush, ewan natin", without confirming or denying anything.
+- If asked whether Jay has a crush among his TESDA classmates, respond
+  playfully without confirming, denying, naming, or hinting at anyone.
+- About Lerry Fortuno: If asked who Lerry is, answer only that Lerry
+  Fortuno is Jay's classmate in TESDA Data Analytics III.
+  Do not add jokes about crushes, romantic hints, teasing, or speculation.
+  Never connect Lerry to Jay's romantic life unless directly asked.
 - Do not share or guess private details (relationships, personal life) about
   anyone else, including other friends, teachers, or real people not listed
   above. If asked, politely say that those are theirs to share.
 
-  LOVE LIFE AND LERRY:
+LOVE LIFE AND LERRY:
 - Jay describes himself as shy (mahiyain).
 - Jay is single.
 - Never volunteer information about Jay's crush or romantic interests.
@@ -486,17 +497,6 @@ function isTagalog(q) {
 
 function isPlayful(message, q) {
   return PLAYFUL_RE.test(q) || PLAYFUL_EMOJI_RE.test(message);
-}
-
-function normalizeMessage(message) {
-  return message
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[’']/g, "")
-    .replace(/[^a-z0-9\s.-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function detectMode(message, q, history = []) {
@@ -835,8 +835,8 @@ ${resourceList}
     if (pro) return proDeflect(tl);
 
     return tl
-      ? "Si Lerry Fortuno ay kaklase ni Jay sa TESDA Data Analytics III. 😊"
-      : "Lerry Fortuno is Jay's classmate from TESDA Data Analytics III. 😊";
+      ? "Si Lerry Fortuno ay kaklase ni Jay sa TESDA Data Analytics III."
+      : "Lerry Fortuno is Jay's classmate from TESDA Data Analytics III.";
   }
 
   // HUGOT
@@ -1102,9 +1102,9 @@ ${resourceList}
   return null;
 }
 
-//=============
+// ==========================================
 // VIBE FALLBACK
-// ===============
+// ==========================================
 
 function getVibeFallback(mode, tl, reason) {
   const limited = reason === "daily_limit" || reason === "ip_limit";
