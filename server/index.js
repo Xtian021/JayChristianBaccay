@@ -211,7 +211,7 @@ const FRIENDS = [
     en: "He studied Agriculture.",
     partner: ""
   },
-    {
+  {
     name: "Jeffryl Quitolbo",
     match: /\b(quitolbo|jeffryl)\b/,
     tl: "",
@@ -255,6 +255,75 @@ function friendsForPrompt() {
     if (friend.partner) line += ` Partner: ${friend.partner}.`;
     return line;
   }).join("\n");
+}
+
+// ==========================================
+// TESDA CLASSMATES (Data Analytics III)
+// ==========================================
+
+// Pangalan lang ang ibinibigay ng chatbot. Walang ibang info.
+const TESDA_CLASSMATES = [
+  "Abejane Medrano",
+  "Ace Batad",
+  "Alex Bondoc",
+  "Alvin Castillo",
+  "Angel Valiente",
+  "Annaliza Liu",
+  "Chev Rolet Apan",
+  "Christine M. Borac",
+  "Cristine Ronquillo Agustin",
+  "Dan Batoon",
+  "Dionicio Manzano Ulep Jr.",
+  "Divina Flores Coloma",
+  "Ed Santos",
+  "Ela Garnet de Vera",
+  "Emerald Apiado Garcia",
+  "Ferick John Baltazar Ragojos",
+  "Hazel Lucas",
+  "Jay Ann Mabatan Bartolome",
+  "Jenelyn Quillope Nacnac",
+  "Jessica Ramos Manuel",
+  "Jhonabhel Domingo Colot",
+  "Jhunie Aquino",
+  "Joanna Marie Delacruz Sablon",
+  "Kim Besa",
+  "KJ Espiritu Valdez",
+  "Lerry Fortuno",
+  "Lexter Dacuycuy",
+  "Nicole Tabilin Gatchalian",
+  "Rodessa Constantino Carani"
+];
+
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii"]);
+
+// Para ma-match ang pangalan kahit kulang ang apelyido o middle name
+const tesdaIndex = TESDA_CLASSMATES.map(name => {
+  const tokens = normalizeMessage(name)
+    .replace(/\./g, "")
+    .split(" ")
+    .filter(word => word && !NAME_SUFFIXES.has(word));
+
+  return {
+    name,
+    first: tokens[0],
+    rest: tokens.slice(1).filter(word => word.length > 2 && word !== "de")
+  };
+});
+
+function findTesdaClassmates(q) {
+  const words = new Set(q.replace(/\./g, "").split(" "));
+
+  return tesdaIndex
+    .filter(
+      person =>
+        words.has(person.first) &&
+        person.rest.some(word => words.has(word))
+    )
+    .map(person => person.name);
+}
+
+function tesdaForPrompt() {
+  return TESDA_CLASSMATES.map(name => `  - ${name}`).join("\n");
 }
 
 const SYSTEM_PROMPT = `
@@ -338,6 +407,12 @@ PEOPLE JAY MENTIONED:
   about a friend, give only that friend's info; if asked who his friends are,
   list them):
 ${friendsForPrompt()}
+- Jay's TESDA Data Analytics III classmates (share NAMES ONLY, never invent
+  any other detail about them; if asked who his classmates are, list them):
+${tesdaForPrompt()}
+- If asked whether Jay has a crush among his TESDA classmates, answer playfully
+  and without naming anyone, for example that maybe there is, and "basta ikaw na"
+  if the visitor is the one asking. Never confirm or name a specific person.
 - Do not share or guess private details (relationships, personal life) about
   anyone else, including other friends, teachers, or real people not listed
   above. If asked, politely say that those are theirs to share.
@@ -391,7 +466,7 @@ const TAGALOG_WORDS = new Set([
   "magandang", "taga", "nga", "naman", "lang", "yung", "yun", "ito", "dito",
   "hindi", "oo", "sige", "mag", "nag", "pa", "na", "kayo", "kita", "tayo",
   "trabaho", "sweldo", "sahod", "alok", "kumpanya", "ilang", "gaano",
-  "kilala", "kaibigan", "kasama"
+  "kilala", "kaibigan", "kasama", "kaklase"
 ]);
 
 function isTagalog(q) {
@@ -566,6 +641,50 @@ function getLocalAnswer(message, history = []) {
       "HAHAHAHA OO NGA NAMAN! 😭 Ikaw: crush lang. Ako: may wedding venue na sa imagination ko. KALMA LANG AKO! 💀🤣",
       "AY SHET HAHAHA! 😭 Nadala lang ako sa chismis! Sige, hindi na ako mag-a-advance ng episode. Ano nga ulit? 😂"
     ]);
+  }
+
+  // TESDA: crush among classmates
+  if (
+    /\b(crush|gusto|type|nagustuhan)\b/.test(q) &&
+    /\b(tesda|data analytics|classmate|classmates|kaklase|batchmate|batchmates)\b/.test(q)
+  ) {
+    if (pro) return proDeflect(tl);
+
+    return randomReply([
+      "HAHAHAHA! 👀 May crush ba si Jay sa TESDA? Hmmmm... malay mo meron! 🤫 Basta kung ikaw ang nagtatanong, edi ikaw na! CHAROT! 😂",
+      "UYYYY, chismosa/chismoso ka rin pala! 😭 Posible namang meron, posible ring wala. Pero kung ikaw ang hinahanap mo... ikaw na! HAHAHA! 🤣",
+      "Ay, classified yan! 🕵️ Malay mo meron, malay mo wala. Pero sa dami ng classmates niya sa Data Analytics III, hindi na ako magtataka. HAHAHA! 😂",
+      "HAHAHA! 😭 Walang confirmation, walang denial. Basta sabihin na lang nating... malay mo, ikaw na! CHAROT! 👀"
+    ]);
+  }
+
+  // TESDA: list of classmates
+  if (
+    /\b(tesda|data analytics)\b/.test(q) &&
+    /\b(classmate|classmates|kaklase|batchmate|batchmates|kabatch|kasama|kasamahan|sino sino|sinong)\b/.test(q)
+  ) {
+    if (pro) return proDeflect(tl);
+
+    const lines = TESDA_CLASSMATES.map(name => `- ${name}`).join("\n");
+
+    return tl
+      ? `Eto ang mga kaklase ni Jay sa TESDA Data Analytics III:\n\n${lines}`
+      : `Here are Jay's classmates in TESDA Data Analytics III:\n\n${lines}`;
+  }
+
+  // TESDA: asking about one specific classmate
+  const tesdaMatches = findTesdaClassmates(q);
+
+  if (tesdaMatches.length > 0 && tesdaMatches.length <= 3) {
+    if (pro) return proDeflect(tl);
+
+    return tesdaMatches
+      .map(name =>
+        tl
+          ? `${name} – kaklase ni Jay sa TESDA Data Analytics III.`
+          : `${name} is one of Jay's classmates in TESDA Data Analytics III.`
+      )
+      .join("\n\n");
   }
 
   // Hugot
