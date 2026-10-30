@@ -758,15 +758,14 @@ if (
 
   // Lerry: sasagot lang kapag tinanong si Lerry
   if (/\b(lerry|fortuno)\b/.test(q)) {
-    if (pro) return proDeflect(tl);
+  if (pro) return proDeflect(tl);
 
-    if (tl) {
-      return randomReply([
-        "Si Lerry Fortuno? Kaklase ni Jay sa TESDA Data Analytics III. 👀 Crush ba? Malay mo... ewan natin! HAHAHA! 🤫 Playsafe lang tayo, walang confirmation.",
-        "Ay, si Lerry! 😂 Kaklase yan ni Jay sa TESDA. Crush? Hmmmm, malay mo, malay mo hindi. Ewan natin! 🕵️ Basta wala akong sinasabi. CHAROT!",
-        "HAHAHA! 😭 Si Lerry Fortuno, kaklase ni Jay sa Data Analytics III. Kung crush man o hindi... ewan natin! Playsafe tayo dito. 🤐👀"
-      ]);
-    }
+  if (tl) {
+    return "Si Lerry Fortuno ay kaklase ni Jay sa TESDA Data Analytics III. 😊";
+  }
+
+  return "Lerry Fortuno is Jay's classmate from TESDA Data Analytics III. 😊";
+  }
 
     return randomReply([
       "Lerry Fortuno is one of Jay's classmates in TESDA Data Analytics III. 👀 Is that the crush? Who knows! 🤫 No confirmation, we're playing it safe.",
