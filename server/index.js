@@ -1,3 +1,4 @@
+
 require("dotenv").config({
   path: require("path").join(__dirname, ".env")
 });
@@ -416,8 +417,8 @@ SOCIAL MEDIA AND CONTACT:
 - If asked for Jay's Facebook, FB, Instagram, IG, or social media accounts,
   provide the exact links above.
 - Share the email and phone number only in professional mode (job offers,
-  interviews, or direct contact requests). Never share them in playful or
-  casual chat.
+  interviews, or direct contact requests). Never share them in playful
+  or casual chat.
 - Use only these exact contact details and never invent other ones.
 - These are Jay's accounts, not the crush's accounts.
 - Harmless jokes about following his profile are okay.
@@ -473,7 +474,6 @@ RESPONSE STYLE:
 - Be conversational, responsive, and context-aware.
 - Do not give a canned introduction on every message.
 - Do not repeat the same hugot line in consecutive replies.
-- Keep professional answers accurate and clear.
 `;
 
 // ==========================================
@@ -492,7 +492,6 @@ const SALARY_RE =
 const AVAILABILITY_RE =
   /\b(availability|available for work|available to work|start date|work schedule|available ba|pwede ba siya magsimula|kailan siya pwede)\b/;
 
-// NEW: WHY SHOULD WE HIRE JAY
 const WHY_HIRE_RE =
   /\b(why should (we|i) hire|why hire|why would (we|i) hire|why are you (a good|the right|suitable)|why is he (a good|the right|suitable)|why should (we|i) choose|why choose jay|what makes jay (a good|the right)|what can jay contribute|what can he contribute|why are you qualified|why is jay qualified|bakit (dapat|kailangan) (namin|ka namin) (kang )?i.?hire|bakit ka namin kukunin|bakit ikaw ang pipiliin|ano ang maiaambag ni jay)\b/;
 
@@ -606,7 +605,6 @@ function contactBlock() {
 
 function getProfessionalAnswer(q, tl) {
 
-  // WHY SHOULD WE HIRE JAY
   if (WHY_HIRE_RE.test(q)) {
     return tl
       ? `Dapat pong ikonsider si Jay dahil BS Information Technology graduate siya at may hands-on experience mula sa kanyang 486-hour internship sa Philippine Statistics Authority (PSA). Naging bahagi ng kanyang trabaho ang data entry, data verification, document processing, digital record management, at basic computer at printer troubleshooting.
@@ -832,7 +830,7 @@ ${resourceList}
     ]);
   }
 
-  // LERRY + ROMANTIC QUESTION -> playful and mysterious, never confirm or deny
+  // LERRY + ROMANTIC QUESTION
   if (LERRY_RE.test(q) && isRomanticQuestion(q)) {
     if (pro) return proDeflect(tl);
 
@@ -853,7 +851,7 @@ ${resourceList}
     ]);
   }
 
-  // LERRY (FACTUAL ONLY) - no jokes, no hints, no crush talk
+  // LERRY FACTUAL ONLY
   if (LERRY_RE.test(q)) {
     const otherClassmates = findTesdaClassmates(q).filter(
       name => name !== "Lerry Fortuno"
@@ -931,7 +929,7 @@ ${resourceList}
       .join("\n\n");
   }
 
-  // ORDINARY QUESTIONS ABOUT LERRY (fallback, factual only)
+  // ORDINARY QUESTIONS ABOUT LERRY
   if (LERRY_RE.test(q)) {
     if (pro) return proDeflect(tl);
 
@@ -1065,7 +1063,7 @@ ${resourceList}
     ]);
   }
 
-  // PICTURE QUESTIONS — NO UNVERIFIED CLAIMS
+  // PICTURE QUESTIONS
   if (
     /\b(picture|photo|pic|selfie|larawan)\b/.test(q) &&
     /\b(crush|sila|magkasama|jay|niya|nya|kayo|dalawa|together)\b/.test(q)
@@ -1079,7 +1077,7 @@ ${resourceList}
     ]);
   }
 
-  // CHANCES — NO ASSUMPTIONS
+  // CHANCES
   if (
     /\b(may pag asa|pag asa ba|pag asa pa|may chance|chance ba|gusto ba siya|gusto ba sya|gusto siya ng crush|gusto sya ng crush|mutual ba|type ba siya|type ba sya|mahal ba siya|mahal ba sya|walang pag asa|wala syang pag asa|wala siyang pag asa|no chance|umaasa ba ako|asa pa ba ako|may chance pa|may pag asa pa)\b/.test(q)
   ) {
@@ -1515,9 +1513,13 @@ app.post("/chat", rateLimit, async (req, res) => {
         `Grok API attempt ${usage.attempts}/${getGrokLimitToday()} using ${model} (mode: ${mode})`
       );
 
+      // ==========================================
+      // GROK 4.7 RESPONSES API
+      // ==========================================
+
       try {
         const response = await fetch(
-          "https://api.x.ai/v1/chat/completions",
+          "https://api.x.ai/v1/responses",
           {
             method: "POST",
             headers: {
@@ -1527,9 +1529,10 @@ app.post("/chat", rateLimit, async (req, res) => {
             },
             body: JSON.stringify({
               model,
-              messages,
+              input: messages,
               temperature,
-              max_tokens: GROK_MAX_TOKENS
+              max_output_tokens: GROK_MAX_TOKENS,
+              store: false
             }),
             signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
           }
@@ -1552,38 +1555,46 @@ app.post("/chat", rateLimit, async (req, res) => {
           continue;
         }
 
-        const content = data.choices?.[0]?.message?.content;
-
+        // Extract text from Grok Responses API
         let answer = "";
 
-        if (typeof content === "string") {
-          answer = content.trim();
-        } else if (Array.isArray(content)) {
-          answer = content
-            .map(part => {
-              if (typeof part === "string") return part;
-              return part?.text || "";
-            })
-            .join("")
+        if (Array.isArray(data.output)) {
+          answer = data.output
+            .filter(item => item.type === "message")
+            .flatMap(item => item.content || [])
+            .filter(part => part.type === "output_text")
+            .map(part => part.text || "")
+            .join("\n")
             .trim();
+        }
+
+        // Additional response format fallback
+        if (!answer && typeof data.output_text === "string") {
+          answer = data.output_text.trim();
         }
 
         if (answer) {
           console.log("Chat answered using model:", model);
 
-          if (canCache) setCachedAnswer(cacheKey, answer);
+          if (canCache) {
+            setCachedAnswer(cacheKey, answer);
+          }
 
           return res.json({
             answer,
             source: "grok",
+            model,
             mode
           });
         }
 
         lastStatus = response.status;
-        lastError = "Grok returned no text.";
+        lastError =
+          data.error?.message ||
+          "Grok returned no text.";
 
         console.error(`Grok ${model}:`, lastError);
+
       } catch (error) {
         lastError = error.message || "Unknown connection error";
         lastStatus = 0;
