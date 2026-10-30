@@ -419,18 +419,27 @@ ${tesdaForPrompt()}
   anyone else, including other friends, teachers, or real people not listed
   above. If asked, politely say that those are theirs to share.
 
-LOVE LIFE:
+  LOVE LIFE AND LERRY:
 - Jay describes himself as shy (mahiyain).
 - Jay is single.
-- Jay has a crush, and he says they have a picture together.
-- Keep the crush's name and identity secret.
-- Never claim to know the crush's feelings.
-- If asked who the crush is, tease the visitor and keep it a secret.
-- If asked about chances, you may make a playful joke, but clearly acknowledge
-  that nobody knows the crush's real feelings.
-- If the visitor says something like "Crush lang sinabi ko" or "Pag-asa agad?",
-  acknowledge that you jumped to conclusions and respond playfully.
-  Example: "AY SORRY NA HAHAHA! Nauna pa akong gumawa ng love story kaysa sa tanong mo! 😭🤣"
+- Never volunteer information about Jay's crush or romantic interests.
+- Never admit or confirm that Jay has a crush on anyone.
+- Answer ordinary questions about Lerry normally using known facts.
+- Never connect Lerry to Jay's romantic life unless directly asked.
+- If directly asked whether Lerry is Jay's crush, respond playfully
+  and teasingly, but never confirm or deny.
+- If asked whether Jay has a crush among TESDA classmates,
+  joke with the visitor without confirming or denying.
+- If asked who Jay's crush is, avoid answering and respond with
+  a mysterious or funny joke. Never reveal or guess a name.
+- Never give hints, clues, or indirect suggestions about who Jay likes.
+- Never assume that mentioning Lerry means the visitor is asking
+  about Jay's crush.
+- Never claim to know another person's feelings.
+- If asked about chances, make a playful joke without assuming
+  Jay has a confirmed crush.
+- If the visitor says something like "Crush lang sinabi ko"
+  or "Pag-asa agad?", acknowledge the misunderstanding playfully.
 
 RESPONSE STYLE:
 - Be conversational, responsive, and context-aware.
@@ -626,56 +635,73 @@ function getLocalAnswer(message, history = []) {
   // ------------------------------------------
   // NEW: IT LEARNING WEBSITE RECOMMENDATIONS
   // ------------------------------------------
+    if (
+  /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|learning website|learning websites|website to learn|websites to learn|site to learn|sites to learn|where can i learn|where to learn|free courses|free course|online course|online courses|learn it|learn programming|learn coding|study it|study programming|beginner resources|learning resources|resources for beginners|it learning|it courses|aralin ang it|matuto ng it|pag aralan ang it|pag aralan ang programming|website na pang aral|site na pang aral)\b/.test(q) &&
+  /\b(it|information technology|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|newbie|learning|learn|study|course|courses|website|websites|resource|resources|free|aral|matuto|pag aralan)\b/.test(q)
+) {
+  const resources = [
+    {
+      name: "Cisco Networking Academy",
+      url: "https://www.netacad.com/",
+      detail: tl
+        ? "Maganda para sa networking, cybersecurity, at IT fundamentals. May mga libreng self-paced courses."
+        : "Great for networking, cybersecurity, and IT fundamentals. Offers free self-paced courses."
+    },
+    {
+      name: "freeCodeCamp",
+      url: "https://www.freecodecamp.org/",
+      detail: tl
+        ? "Para sa HTML, CSS, JavaScript, web development, at programming. May hands-on exercises."
+        : "Learn HTML, CSS, JavaScript, web development, and programming through hands-on exercises."
+    },
+    {
+      name: "W3Schools",
+      url: "https://www.w3schools.com/",
+      detail: tl
+        ? "Beginner-friendly tutorials para sa HTML, CSS, JavaScript, PHP, SQL, at iba pa."
+        : "Beginner-friendly tutorials for HTML, CSS, JavaScript, PHP, SQL, and more."
+    },
+    {
+      name: "Microsoft Learn",
+      url: "https://learn.microsoft.com/training/",
+      detail: tl
+        ? "Para sa Windows, Microsoft technologies, Azure, at IT-related learning paths."
+        : "Learn about Windows, Microsoft technologies, Azure, and IT-related topics."
+    },
+    {
+      name: "MDN Web Docs",
+      url: "https://developer.mozilla.org/",
+      detail: tl
+        ? "Mas detalyadong documentation at guides para sa HTML, CSS, JavaScript, at web development."
+        : "Detailed documentation and guides for HTML, CSS, JavaScript, and web development."
+    },
+    {
+      name: "Khan Academy",
+      url: "https://www.khanacademy.org/computing",
+      detail: tl
+        ? "May beginner lessons tungkol sa computing, programming, at computer science."
+        : "Beginner lessons covering computing, programming, and computer science."
+    }
+  ];
 
-  if (
-    /\b(recommend|recommendation|recommendations|suggest|suggestion|suggestions|learning website|learning websites|website to learn|websites to learn|site to learn|sites to learn|where can i learn|where to learn|free courses|free course|online course|online courses|learn it|learn programming|learn coding|study it|study programming|beginner resources|learning resources|resources for beginners|it learning|it courses|aralin ang it|matuto ng it|pag aralan ang it|pag aralan ang programming|website na pang aral|site na pang aral)\b/.test(q) &&
-    /\b(it|information technology|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|newbie|learning|learn|study|course|courses|website|websites|resource|resources|free|aral|matuto|pag aralan)\b/.test(q)
-  ) {
-    const resources = [
-      {
-        name: "Cisco Networking Academy",
-        url: "https://www.netacad.com/",
-        detail: tl
-          ? "Maganda para sa networking, cybersecurity, at IT fundamentals. May mga libreng self-paced courses."
-          : "Great for networking, cybersecurity, and IT fundamentals. Offers free self-paced courses."
-      },
-      {
-        name: "freeCodeCamp",
-        url: "https://www.freecodecamp.org/",
-        detail: tl
-          ? "Para sa HTML, CSS, JavaScript, web development, at programming. May hands-on exercises."
-          : "Learn HTML, CSS, JavaScript, web development, and programming through hands-on exercises."
-      },
-      {
-        name: "W3Schools",
-        url: "https://www.w3schools.com/",
-        detail: tl
-          ? "Beginner-friendly tutorials para sa HTML, CSS, JavaScript, PHP, SQL, at iba pa."
-          : "Beginner-friendly tutorials for HTML, CSS, JavaScript, PHP, SQL, and more."
-      },
-      {
-        name: "Microsoft Learn",
-        url: "https://learn.microsoft.com/training/",
-        detail: tl
-          ? "Para sa Windows, Microsoft technologies, Azure, at IT-related learning paths."
-          : "Learn about Windows, Microsoft technologies, Azure, and IT-related topics."
-      },
-      {
-        name: "MDN Web Docs",
-        url: "https://developer.mozilla.org/",
-        detail: tl
-          ? "Mas detalyadong documentation at guides para sa HTML, CSS, JavaScript, at web development."
-          : "Detailed documentation and guides for HTML, CSS, JavaScript, and web development."
-      },
-      {
-        name: "Khan Academy",
-        url: "https://www.khanacademy.org/computing",
-        detail: tl
-          ? "May beginner lessons tungkol sa computing, programming, at computer science."
-          : "Beginner lessons covering computing, programming, and computer science."
-      }
-    ];
+}
 
+// Mysterious crush responses — never admit or confirm
+if (
+  /\b(crush|crushing|in love|like someone|likes someone|may gusto|nagkagusto|gusto niya|gusto mo)\b/i.test(q) &&
+  /\b(ba|siya|sya|someone|anyone|who|sino|may|meron|does|do you|is he|is she|talaga)\b/i.test(q)
+) {
+  const replies = [
+    "Bakit, curious ka ba? HAHAHA 😏",
+    "Secret lang muna. Hindi lahat kailangang malaman. 🤫",
+    "Malay mo meron, malay mo wala. HAHAHA",
+    "Walang confirmation dito. 😂",
+    "Hmm... magandang tanong. Next question! 😆"
+  ];
+
+  return replies[Math.floor(Math.random() * replies.length)];
+}
+    
     const resourceList = resources
       .map(item => `**${item.name}**\n${item.url}\n${item.detail}`)
       .join("\n\n");
