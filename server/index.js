@@ -1,4 +1,3 @@
-
 require("dotenv").config({
   path: require("path").join(__dirname, ".env")
 });
@@ -378,6 +377,10 @@ PERSONALITY:
 - Short questions usually deserve short answers.
 - If asked for hugot lines, provide one or a few varied lines depending on the request.
 - Keep humor friendly, not cruel, humiliating, or offensive.
+- Casual profanity or strong language from a visitor does not automatically mean
+  the visitor is angry. Understand the context before replying.
+- If the visitor is joking, respond naturally and playfully.
+- If the visitor is genuinely upset, acknowledge it instead of joking.
 - For serious advice, be respectful and helpful.
 - For education, skills, work experience, and technical questions, prioritize
   accurate and professional answers. Do not sacrifice correctness for a joke.
@@ -495,8 +498,9 @@ const AVAILABILITY_RE =
 const WHY_HIRE_RE =
   /\b(why should (we|i) hire|why hire|why would (we|i) hire|why are you (a good|the right|suitable)|why is he (a good|the right|suitable)|why should (we|i) choose|why choose jay|what makes jay (a good|the right)|what can jay contribute|what can he contribute|why are you qualified|why is jay qualified|bakit (dapat|kailangan) (namin|ka namin) (kang )?i.?hire|bakit ka namin kukunin|bakit ikaw ang pipiliin|ano ang maiaambag ni jay)\b/;
 
+// Expanded casual language and profanity detection.
 const PLAYFUL_RE =
-  /(haha|hehe|hihi|\blol\b|lmao|charot|\bjoke\b|\bbiro\b|banat|hugot|\bjk\b|\bbes\b|\bpre\b|\bbro\b|\btol\b|\blods\b|\bhoy\b|\buy+\b|\bwtf\b)/;
+  /(haha|hehe|hihi|\blol\b|lmao|charot|\bjoke\b|\bbiro\b|banat|hugot|\bjk\b|\bbes\b|\bpre\b|\bbro\b|\btol\b|\blods\b|\bhoy\b|\buy+\b|\bwtf\b|\bputang ina\b|\bputangina\b|\btangina\b|\bpota\b|\bpucha\b|\bgago\b|\btanga\b|\bbobo\b|\bshet\b|\bshit\b|\bfuck\b|\bfucking\b|\bdamn\b|\bbruh\b)/i;
 
 const PLAYFUL_EMOJI_RE = /[😂🤣😭💀😆😅😜😝😏🤪😹]/u;
 
@@ -548,28 +552,22 @@ function buildModeInstruction(mode, tagalog) {
   const languageRule =
     "LANGUAGE: Reply in the same language as the visitor's latest message " +
     (tagalog
-      ? "The visitor is writing in Filipino/Taglish, so use respectful Filipino/Taglish."
+      ? "The visitor is writing in Filipino/Taglish, so use natural Filipino/Taglish."
       : "The visitor is writing in English, so reply in English.");
 
   if (mode === "professional") {
     return `
-CURRENT CONVERSATION MODE: PROFESSIONAL (this overrides the humor rules above)
-- The visitor may be an employer, recruiter, or someone with a work inquiry.
+CURRENT CONVERSATION MODE: PROFESSIONAL
 - Be polite, clear, concise, and professional.
 - Do NOT use jokes, hugot, banat, HAHAHA, charot, teasing, or playful emojis.
 - Do not bring up Jay's love life, crush, or relationship status.
-  If asked, politely say you would rather keep the conversation professional.
 - Use "po" naturally if the visitor writes in Filipino.
 - For job offers or interviews: thank them, briefly summarize Jay's verified
-  background, and invite them to contact Jay directly through the Facebook,
-  Instagram, email, or phone listed above. Ask for the position, company,
-  location, and schedule.
-- When asked why Jay should be hired, explain his relevant education,
-  486-hour PSA internship, data entry and verification experience,
-  basic IT support skills, and ability to build web-based systems using
-  HTML, CSS, and JavaScript. Do not exaggerate his skill level.
+  background, and invite them to contact Jay directly through the listed details.
+- When asked why Jay should be hired, explain his education, 486-hour PSA
+  internship, data entry and verification experience, basic IT support skills,
+  and ability to build web-based systems using HTML, CSS, and JavaScript.
 - Never invent salary, availability, start dates, or other contact details.
-  Say Jay will discuss those details directly.
 - ${languageRule}
 `;
   }
@@ -577,8 +575,12 @@ CURRENT CONVERSATION MODE: PROFESSIONAL (this overrides the humor rules above)
   if (mode === "playful") {
     return `
 CURRENT CONVERSATION MODE: PLAYFUL
-- The visitor is joking or being casual. Match their energy with friendly humor.
-- Keep jokes kind and never repeat the previous joke.
+- The visitor is being casual, joking, teasing, or using strong language.
+- Match the visitor's energy naturally. Do not assume profanity means anger.
+- You may use friendly jokes, witty comebacks, Taglish, and emojis.
+- Do not respond with generic error messages when a casual reply is possible.
+- If the visitor is genuinely upset, acknowledge it instead of making fun of them.
+- Keep replies natural and varied. Do not force a joke into every response.
 - Still stay accurate about Jay's profile.
 - Do not share Jay's email or phone number in this mode.
 - ${languageRule}
@@ -587,10 +589,11 @@ CURRENT CONVERSATION MODE: PLAYFUL
 
   return `
 CURRENT CONVERSATION MODE: NEUTRAL
-- Be warm and friendly, but do not force jokes, hugot, or heavy slang.
-- Match the visitor's tone: if they write formally, answer formally;
-  if they write casually, you may be a little more casual.
-- Use humor only lightly, and only if the visitor invites it.
+- Be warm, friendly, natural, and conversational.
+- Match the visitor's tone and language.
+- Do not force jokes, hugot, or heavy slang.
+- Answer the actual latest message, considering the conversation history.
+- Avoid generic canned replies when you can give a meaningful answer.
 - ${languageRule}
 `;
 }
@@ -604,7 +607,6 @@ function contactBlock() {
 }
 
 function getProfessionalAnswer(q, tl) {
-
   if (WHY_HIRE_RE.test(q)) {
     return tl
       ? `Dapat pong ikonsider si Jay dahil BS Information Technology graduate siya at may hands-on experience mula sa kanyang 486-hour internship sa Philippine Statistics Authority (PSA). Naging bahagi ng kanyang trabaho ang data entry, data verification, document processing, digital record management, at basic computer at printer troubleshooting.
@@ -791,8 +793,8 @@ ${resourceList}
     /\b(lets chat|let us chat|lets talk|let us talk|can we chat|just chat|chat tayo|usap tayo|kwentuhan tayo)\b/.test(q)
   ) {
     return tl
-      ? "Magandang araw po! Welcome sa portfolio ni Jay. Handa po akong tumulong. Maaari po kayong magtanong tungkol sa skills, internship experience, education, career goals, o kung paano makontak si Jay."
-      : "Hello, and welcome to Jay's portfolio! I'm happy to help. You can ask me about Jay's skills, internship experience, education, career goals, or how to contact him.";
+      ? "Sige, chikahan tayo! 😂 Anong topic natin ngayon?"
+      : "Sure, let's chat! 😄 What's on your mind?";
   }
 
   // CAREER GOALS
@@ -1207,32 +1209,53 @@ ${resourceList}
 
 function getVibeFallback(mode, tl, reason) {
   const limited = reason === "daily_limit" || reason === "ip_limit";
+  const failed = reason === "grok_error" || reason === "grok_limit";
 
   if (mode === "professional") {
     return tl
-      ? `Pasensya na po, hindi ko po masasagot nang detalyado ang tanong na iyan sa ngayon. Matutulungan ko po kayo sa skills, experience, education, at contact details ni Jay. Para po sa mas detalyadong usapan, maaari po ninyo siyang makontak nang direkta:\n\n${contactBlock()}`
-      : `I'm sorry, I can't answer that question in detail right now. I can still help with Jay's skills, experience, education, and contact details. For a more detailed discussion, please contact him directly:\n\n${contactBlock()}`;
+      ? `Pasensya na po, nagkaroon ng temporary issue sa pagproseso ng tanong ninyo. Maaari ko pa rin pong ibigay ang verified information tungkol sa skills, experience, education, at contact details ni Jay.\n\n${contactBlock()}`
+      : `Sorry, there was a temporary issue processing your question. I can still provide verified information about Jay's skills, experience, education, and contact details.\n\n${contactBlock()}`;
   }
 
   if (mode === "playful") {
     if (limited) {
       return randomReply([
-        "HAHAHA! 😭 Napagod na ang AI brain ko for today, pero andito pa rin ako! Itanong mo sa'kin ang skills, OJT, education, o social media ni Jay at sasagot ako agad. 😎",
-        "AY! 😂 Ubos na ang AI energy ko ngayong araw, parang battery na 1% na lang. 🔋 Pero kaya ko pa rin sagutin ang tungkol sa skills, internship, at education ni Jay! Subukan mo!",
-        "CHAROT! 🤣 Nag-power nap muna ang utak ko for today. Pero huwag kang mag-alala, tanungin mo lang ako tungkol sa skills, OJT, o education ni Jay at kaya ko pa yan! 👀"
+        "HAHAHA! 😭 Mukhang kailangan munang magpahinga ng AI brain ko. Pero game pa rin ako sa mga tanong tungkol kay Jay!",
+        "AY! Naubos muna ang AI energy ko. Parang cellphone na 1% battery. 🔋😂 Balik tayo sa local questions muna!",
+        "CHAROT! Nag-power nap muna ang utak ko. 😂 Pero pwede pa rin kitang tulungan tungkol sa profile ni Jay!"
+      ]);
+    }
+
+    if (failed) {
+      return randomReply([
+        "HAHAHA! Nagloko muna ang connection ko. Hindi ako galit, nagka-technical difficulties lang. 😂 Ulitin mo nga?",
+        "AY! Na-mental block ang chatbot. Parang tinawag sa recitation tapos walang review. 😭 Try mo ulit!",
+        "Sandali, nag-loading ang utak ko. HAHAHA! 😂 Pakiulit nga, baka masagot ko na sa second attempt."
       ]);
     }
 
     return randomReply([
-      "HAHAHA! 😭 Nag-lag ang utak ko saglit, parang Wi-Fi sa tabi ng microwave. 📶 Subukan mo ulit mamaya, o itanong mo muna ang skills, OJT, o education ni Jay!",
-      "AY SHET HAHAHA! 😂 Na-blanko ako bigla, parang nakalimutan ang assignment. Tanong ka ulit mamaya, o itanong mo muna ang tungkol sa skills at internship ni Jay! 😎",
-      "Uy sorry! 😅 Na-seen-zone ako ng server saglit. Subukan mo ulit mamaya, o itanong mo muna kung ano ang skills o social media ni Jay!"
+      "HAHAHA! Wait lang, hindi ko agad nasundan. Ano ulit? 😂",
+      "Uy, nag-buffer ako saglit. 😭 Pakiulit nga!",
+      "Hala, nawala ako sa usapan. HAHAHA! Ano nga ulit yun? 🤣"
     ]);
   }
 
+  if (limited) {
+    return tl
+      ? "Pasensya na, pansamantalang naabot ang limit ng AI replies. Maaari pa rin kitang tulungan sa mga impormasyon tungkol sa skills, internship, education, at profile ni Jay."
+      : "The AI response limit has temporarily been reached. I can still help with information about Jay's skills, internship, education, and profile.";
+  }
+
+  if (failed) {
+    return tl
+      ? "Pasensya na, nagkaroon ng pansamantalang problema sa AI connection. Pakisubukan ulit ang tanong mo."
+      : "Sorry, there was a temporary problem connecting to the AI service. Please try asking again.";
+  }
+
   return tl
-    ? "Pasensya na, hindi ko masasagot nang maayos ang tanong na iyan sa ngayon. Subukan mo ulit mamaya, o itanong mo muna ang tungkol sa skills, internship, education, o social media ni Jay at masasagot ko agad. 😊"
-    : "Sorry, I can't answer that properly right now. Please try again later, or ask me about Jay's skills, internship, education, or social media and I can answer right away. 😊";
+    ? "Pasensya na, hindi ko agad nasundan ang tanong mo. Puwede mo bang sabihin ulit sa ibang paraan?"
+    : "Sorry, I didn't quite understand that. Could you rephrase your question?";
 }
 
 function respondFallback(res, mode, tagalog, reason) {
@@ -1303,8 +1326,10 @@ setInterval(() => {
 // FILLER MESSAGES
 // ==========================================
 
+// Tinanggal ang "wala" para hindi ma-classify ang "wala akong ginagawa"
+// bilang simpleng filler message.
 const FILLER_RE =
-  /^(ok|okay|okey|k|sige|ge|ah+|oh+|hm+|hmm+|wow|nice|cool|galing|talaga|really|weh|haha+|hehe+|hihi+|lol|wala|ayos|aww+|i see|got it)( po| na| lang)?$/;
+  /^(ok|okay|okey|k|sige|ge|ah+|oh+|hm+|hmm+|wow|nice|cool|galing|talaga|really|weh|haha+|hehe+|hihi+|lol|ayos|aww+|i see|got it)( po| na| lang)?$/;
 
 function getFillerAnswer(q, mode, tl) {
   if (q && !FILLER_RE.test(q)) return null;
@@ -1327,11 +1352,12 @@ function getFillerAnswer(q, mode, tl) {
 // TOKEN SAVERS
 // ==========================================
 
-const GROK_HISTORY_LIMIT = 4;
-const GROK_HISTORY_CHARS = 600;
-const GROK_MAX_TOKENS = 400;
+const GROK_HISTORY_LIMIT = 8;
+const GROK_HISTORY_CHARS = 1000;
+const GROK_MAX_TOKENS = 600;
+
 const BREVITY_RULE =
-  "\nKeep replies concise (about 100 words or less) unless the visitor asks for details.";
+  "\nKeep replies concise and natural (about 100 words or less) unless the visitor asks for details. Avoid generic fallback-style replies when you can answer naturally.";
 
 // ==========================================
 // GROK CONFIGURATION
@@ -1418,7 +1444,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 3) Cache: only for first questions and non-playful mode.
+    // 3) Cache only first questions and non-playful mode.
     const hasHistory = Array.isArray(history) && history.length > 0;
     const canCache = !hasHistory && mode !== "playful";
     const cacheKey = `${mode}|${normalizedMessage}`;
@@ -1494,7 +1520,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       content: cleanMessage
     });
 
-    const temperature = mode === "professional" ? 0.4 : 0.7;
+    const temperature = mode === "professional" ? 0.4 : 0.8;
 
     let lastError = "No model returned a response.";
     let lastStatus = 0;
@@ -1512,10 +1538,6 @@ app.post("/chat", rateLimit, async (req, res) => {
       console.log(
         `Grok API attempt ${usage.attempts}/${getGrokLimitToday()} using ${model} (mode: ${mode})`
       );
-
-      // ==========================================
-      // GROK 4.7 RESPONSES API
-      // ==========================================
 
       try {
         const response = await fetch(
@@ -1555,7 +1577,6 @@ app.post("/chat", rateLimit, async (req, res) => {
           continue;
         }
 
-        // Extract text from Grok Responses API
         let answer = "";
 
         if (Array.isArray(data.output)) {
@@ -1568,7 +1589,6 @@ app.post("/chat", rateLimit, async (req, res) => {
             .trim();
         }
 
-        // Additional response format fallback
         if (!answer && typeof data.output_text === "string") {
           answer = data.output_text.trim();
         }
@@ -1626,9 +1646,15 @@ app.post("/chat", rateLimit, async (req, res) => {
   } catch (error) {
     console.error("Chat server error:", error.message);
 
-    return res.status(502).json({
-      error: error.message || "Unexpected chatbot server error."
-    });
+    // Return a normal fallback instead of exposing server errors to visitors.
+    const message = req.body?.message || "";
+    const normalized = normalizeMessage(
+      typeof message === "string" ? message : ""
+    );
+    const mode = detectMode(message, normalized);
+    const tagalog = isTagalog(normalized);
+
+    return respondFallback(res, mode, tagalog, "grok_error");
   }
 });
 
