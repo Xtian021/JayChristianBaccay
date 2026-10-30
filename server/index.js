@@ -620,8 +620,16 @@ function getLocalAnswer(message, history = []) {
   const tl = isTagalog(q);
 
   // Suggested questions (hardcoded, professional)
-  if (/^(lets chat|lets talk|let us chat)$/.test(q)) {
-    return "Hello, and welcome to Jay's portfolio! I'm happy to help. You can ask me about Jay's skills, internship experience, education, career goals, or how to contact him.";
+  if (
+    /^(lets chat|lets talk|let us chat|hi can we chat|hi lets chat|hello can we chat)$/.test(q)
+  ) {
+    return randomReply([
+      "Hello! 👋 Welcome sa portfolio ni Jay! I'm happy to chat with you. You can ask me about his IT skills, internship experience, education, projects, or career goals. 😊",
+
+      "Hi there! 😎 Welcome! Ako ang AI assistant ni Jay. Ano ang gusto mong malaman tungkol sa kanya? Pwede tayong mag-usap tungkol sa kanyang skills, OJT, projects, at career.",
+
+      "Hey! 👋 Nice to meet you! Feel free to explore Jay's portfolio. Ask me anything about his education, technical skills, internship, and projects!"
+    ]);
   }
 
   if (/^career goals?$/.test(q)) {
