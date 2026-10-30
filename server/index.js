@@ -422,10 +422,16 @@ ${friendsForPrompt()}
 ${tesdaForPrompt()}
 - If asked whether Jay has a crush among his TESDA classmates, respond
   playfully without confirming, denying, naming, or hinting at anyone.
-- About Lerry Fortuno: If asked who Lerry is, answer only that Lerry
-  Fortuno is Jay's classmate in TESDA Data Analytics III.
-  Do not add jokes about crushes, romantic hints, teasing, or speculation.
-  Never connect Lerry to Jay's romantic life unless directly asked.
+- About Lerry Fortuno:
+  * Factual questions ("Who is Lerry?", "Is Lerry Jay's classmate?"):
+    answer only with the known fact: Lerry Fortuno is Jay's classmate in
+    TESDA Data Analytics III. Keep it factual. No jokes, no teasing,
+    no romantic hints, no speculation.
+  * Only if the visitor directly asks whether Lerry is Jay's crush (or
+    otherwise romantically linked to Jay): reply playfully and mysteriously.
+    Never confirm and never deny.
+  * Never bring up crush jokes about Lerry on your own.
+  * Never connect Lerry to Jay's romantic life unless directly asked.
 - Do not share or guess private details (relationships, personal life) about
   anyone else, including other friends, teachers, or real people not listed
   above. If asked, politely say that those are theirs to share.
@@ -611,6 +617,33 @@ function proDeflect(tl) {
 }
 
 // ==========================================
+// LERRY / ROMANTIC QUESTION HELPERS
+// ==========================================
+
+// Lerry questions follow three rules:
+// 1) "Sino si Lerry?"            -> factual only
+// 2) "Kaklase ba ni Jay si Lerry?" -> factual only
+// 3) "Crush ba ni Jay si Lerry?"   -> playful + mysterious, no confirm/deny
+// Ordinary questions never get crush jokes.
+
+const LERRY_RE = /\b(lerry|fortuno)\b/;
+
+const CLASSMATE_ASK_RE =
+  /\b(kaklase|classmate|classmates|batchmate|batchmates|magkaklase|kabatch|schoolmate)\b/;
+
+// Only real romantic wording counts. A bare "gusto" (e.g. "gusto ko malaman")
+// or "type" (e.g. "what type of...") must NOT trigger a crush joke.
+const ROMANTIC_RE =
+  /\b(crush|crushes|nagustuhan|may gusto|gusto ba|gusto mo ba|gusto ni|gusto niya|gusto nya|gusto siya|gusto sya|type ba|type ni|type niya|type nya|jowa|nililigawan|liligawan|ligawan|love interest|special someone|kinakilig|girlfriend|boyfriend|mahal ba|mahal ni|mahal niya|mahal nya|has a crush|have a crush|like like|romantic|romantically|dating|date ni)\b/;
+
+const ROMANTIC_EN_RE =
+  /\b(does|do|did) (jay|he) (like|likes|love|loves)\b|\blikes? (lerry|her)\b|\bin love with\b/;
+
+function isRomanticQuestion(q) {
+  return ROMANTIC_RE.test(q) || ROMANTIC_EN_RE.test(q);
+}
+
+// ==========================================
 // LOCAL ANSWERS
 // ==========================================
 
@@ -769,24 +802,51 @@ ${resourceList}
     ]);
   }
 
-  // DIRECT QUESTION ABOUT LERRY BEING A CRUSH
-  if (
-    /\b(lerry|fortuno)\b/.test(q) &&
-    /\b(crush|gusto|type|nagustuhan|may gusto)\b/.test(q)
-  ) {
+  // LERRY + ROMANTIC QUESTION -> playful and mysterious, never confirm or deny
+  if (LERRY_RE.test(q) && isRomanticQuestion(q)) {
     if (pro) return proDeflect(tl);
 
+    if (!tl) {
+      return randomReply([
+        "Hmm, some things are more fun to guess than to answer. 😏",
+        "That's classified information. 🤐 I won't confirm it, and I won't deny it either.",
+        "Ooh, interesting question! 👀 But that envelope stays sealed. 🤫",
+        "Nice try! 😂 My lips are sealed, and so is the file. 🕵️"
+      ]);
+    }
+
     return randomReply([
-      "HAHAHAHA! Bakit si Lerry agad ang tinatanong mo? 😂 Wala akong confirmation o denial dito!",
-      "Uy, may specific name na! HAHAHA! Classified information muna. 🤐",
-      "Hala, bakit parang may investigation? Wala akong aaminin! CHAROT! 😂",
-      "Nice try! Pero hindi ako basta-basta nagbibigay ng confirmation. HAHAHA! 🤣"
+      "Hmm, may mga bagay na mas masarap hulaan kaysa sagutin. 😏",
+      "Classified information 'yan! 🤐 Hindi ako magko-confirm, hindi rin magde-deny.",
+      "Ay, interesting na tanong! 👀 Pero sealed envelope muna 'to. 🤫",
+      "HAHAHA! Nice try! 😂 Wala akong sasabihin… at wala rin akong itatanggi. 🕵️"
     ]);
+  }
+
+  // LERRY (FACTUAL ONLY) - no jokes, no hints, no crush talk
+  if (LERRY_RE.test(q)) {
+    const otherClassmates = findTesdaClassmates(q).filter(
+      name => name !== "Lerry Fortuno"
+    );
+
+    if (otherClassmates.length === 0) {
+      if (pro) return proDeflect(tl);
+
+      if (CLASSMATE_ASK_RE.test(q)) {
+        return tl
+          ? "Oo, kaklase ni Jay si Lerry Fortuno sa TESDA Data Analytics III."
+          : "Yes, Lerry Fortuno is Jay's classmate in TESDA Data Analytics III.";
+      }
+
+      return tl
+        ? "Si Lerry Fortuno ay kaklase ni Jay sa TESDA Data Analytics III."
+        : "Lerry Fortuno is Jay's classmate in TESDA Data Analytics III.";
+    }
   }
 
   // TESDA CRUSH QUESTIONS
   if (
-    /\b(crush|gusto|type|nagustuhan)\b/.test(q) &&
+    isRomanticQuestion(q) &&
     /\b(tesda|data analytics|classmate|classmates|kaklase|batchmate|batchmates|mate|mates)\b/.test(q)
   ) {
     if (pro) return proDeflect(tl);
@@ -830,8 +890,8 @@ ${resourceList}
       .join("\n\n");
   }
 
-  // ORDINARY QUESTIONS ABOUT LERRY
-  if (/\b(lerry|fortuno)\b/.test(q)) {
+  // ORDINARY QUESTIONS ABOUT LERRY (fallback, factual only)
+  if (LERRY_RE.test(q)) {
     if (pro) return proDeflect(tl);
 
     return tl
