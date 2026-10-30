@@ -1,4 +1,3 @@
-
 require("dotenv").config({
   path: require("path").join(__dirname, ".env")
 });
@@ -23,7 +22,7 @@ const CONTACT_PHONE = "09976432312";
 const PH_TIMEZONE = "Asia/Manila";
 
 const AI_PROVIDER = "Grok (xAI)";
-const AI_API_URL = "https://api.x.ai/v1/chat/completions";
+const AI_API_URL = "https://api.x.ai/v1/responses";
 
 const GROK_API_KEY =
   process.env.GROK_API_KEY ||
@@ -1228,7 +1227,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode}`
     );
 
-    // 7. Call xAI Grok Chat Completions API
+    // 7. Call xAI Grok Responses API
     const response = await fetch(AI_API_URL, {
       method: "POST",
       headers: {
@@ -1237,9 +1236,12 @@ app.post("/chat", rateLimit, async (req, res) => {
       },
       body: JSON.stringify({
         model: GROK_MODEL,
-        messages,
-        temperature: mode === "professional" ? 0.4 : 0.7,
-        max_tokens: GROK_MAX_TOKENS
+        input: messages,
+        max_output_tokens: GROK_MAX_TOKENS,
+        reasoning: {
+          effort: "low"
+        },
+        store: false
       }),
       signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
     });
@@ -1250,9 +1252,14 @@ app.post("/chat", rateLimit, async (req, res) => {
       const errorMessage =
         data.error?.message ||
         data.message ||
+        JSON.stringify(data) ||
         `HTTP ${response.status}`;
 
-      console.error("xAI API error:", response.status, errorMessage);
+      console.error(
+        "xAI API error:",
+        response.status,
+        errorMessage
+      );
 
       const limited =
         response.status === 429 ||
@@ -1266,12 +1273,31 @@ app.post("/chat", rateLimit, async (req, res) => {
       );
     }
 
-    // 8. Extract response text
-    const answer = (data.choices?.[0]?.message?.content || "").trim();
+    // 8. Extract response text from Responses API
+    const answer = (data.output || [])
+      .filter(item => item.type === "message")
+      .flatMap(item => item.content || [])
+      .filter(
+        item =>
+          item.type === "output_text" &&
+          typeof item.text === "string"
+      )
+      .map(item => item.text)
+      .join("\n")
+      .trim();
 
     if (!answer) {
-      console.error("Grok returned an empty response:", JSON.stringify(data));
-      return respondFallback(res, mode, tagalog, "empty_response");
+      console.error(
+        "Grok returned an empty response:",
+        JSON.stringify(data)
+      );
+
+      return respondFallback(
+        res,
+        mode,
+        tagalog,
+        "empty_response"
+      );
     }
 
     if (canCache) {
@@ -1287,7 +1313,10 @@ app.post("/chat", rateLimit, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Chat server error:", error.message);
+    console.error(
+      "Chat server error:",
+      error.stack || error.message
+    );
 
     const message = String(req.body?.message || "");
     const q = normalizeMessage(message);
