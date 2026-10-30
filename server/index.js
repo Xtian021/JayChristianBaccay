@@ -1240,7 +1240,7 @@ ${resourceList}
   // FIX: moved below the topic answers. Before, "tell me about jay's skills"
   // matched "tell me about jay" and returned the introduction instead.
   if (
-    /\b(who is jay|who is jay christian|tell me about jay|introduce jay|about jay|sino si jay|pakilala si jay|kwento tungkol kay jay)\b/.test(q)
+    /\b(who is jay|who is jay christian|tell me about jay|introduce jay|about jay|sino si jay|pakilala si jay|kwento tungkol kay jay|about (kay )?(jay )?christian|who is (jay )?christian|sino si (jay )?christian|kay christian|kay jay christian)\b/.test(q)
   ) {
     if (tl) {
       return pro
