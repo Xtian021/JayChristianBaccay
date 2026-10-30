@@ -154,6 +154,102 @@ const HUGOT_LINES = [
   "Huwag kang maghabol. Hindi ka naman nawawalang parcel. 📦😭"
 ];
 
+// ==========================================
+// JAY'S FRIENDS
+// ==========================================
+
+// match   = regex na chine-check sa normalized (lowercase, walang accent) na message
+// tl / en = info ng kaibigan (iwanang "" kung wala pa)
+// partner = pangalan ng jowa (iwanang "" kung wala pa o ayaw ilagay)
+const FRIENDS = [
+  {
+    name: "Arjay Cabia Cabinbin",
+    match: /\b(cabinbin|cabia)\b/,
+    tl: "Criminology ang kurso niya at registered na.",
+    en: "He studied Criminology and is registered.",
+    partner: ""
+  },
+  {
+    name: "Ar-jay Catolico Bucad",
+    match: /\b(bucad|catolico|ar-jay|ar jay)\b/,
+    tl: "Agriculture ang kurso niya at registered na.",
+    en: "He studied Agriculture and is registered.",
+    partner: ""
+  },
+  {
+    name: "Kyle Jezxel Brytch",
+    match: /\b(brytch|kyle)\b/,
+    tl: "Criminology ang kurso niya.",
+    en: "He studied Criminology.",
+    partner: ""
+  },
+  {
+    name: "Prince Jomari Gallasinao",
+    match: /\b(gallasinao|jomari|prince)\b/,
+    tl: "Graduate siya ng BS Criminology.",
+    en: "He is a BS Criminology graduate.",
+    partner: ""
+  },
+  {
+    name: "Jerome Angel Dioniso",
+    match: /\b(dioniso|jerome)\b/,
+    tl: "",
+    en: "",
+    partner: ""
+  },
+  {
+    name: "Orlando Banguel",
+    match: /\b(banguel|orlando)\b/,
+    tl: "",
+    en: "",
+    partner: ""
+  },
+  {
+    name: "Jonathan Mina",
+    match: /\b(mina|jonathan)\b/,
+    tl: "Agriculture ang kurso niya.",
+    en: "He studied Agriculture.",
+    partner: ""
+  }
+];
+
+function friendInfo(friend, tl) {
+  let text = tl
+    ? `${friend.name} – kaibigan ni Jay.`
+    : `${friend.name} is a friend of Jay.`;
+
+  const detail = tl ? friend.tl : friend.en;
+  if (detail) text += ` ${detail}`;
+
+  if (friend.partner) {
+    text += tl ? ` Jowa: ${friend.partner}.` : ` Partner: ${friend.partner}.`;
+  }
+
+  return text;
+}
+
+function friendListLine(friend, tl) {
+  const detail = tl ? friend.tl : friend.en;
+  let line = `- ${friend.name}`;
+
+  if (detail) line += ` (${detail.replace(/\.$/, "")})`;
+
+  if (friend.partner) {
+    line += tl ? ` – jowa: ${friend.partner}` : ` – partner: ${friend.partner}`;
+  }
+
+  return line;
+}
+
+function friendsForPrompt() {
+  return FRIENDS.map(friend => {
+    let line = `  - ${friend.name}`;
+    if (friend.en) line += `: ${friend.en}`;
+    if (friend.partner) line += ` Partner: ${friend.partner}.`;
+    return line;
+  }).join("\n");
+}
+
 const SYSTEM_PROMPT = `
 You are the personal portfolio assistant for Jay Christian Baccay.
 You are Jay's chatbot, NOT Jay himself.
@@ -231,9 +327,13 @@ SOCIAL MEDIA AND CONTACT:
 PEOPLE JAY MENTIONED:
 - Eliza Garro Calumpit is a teacher who, according to Jay, passed the Civil Service Exam.
 - Share nothing else about her beyond this. Do not invent other details.
+- Jay's friends (share ONLY the info listed here, never invent more; if asked
+  about a friend, give only that friend's info; if asked who his friends are,
+  list them):
+${friendsForPrompt()}
 - Do not share or guess private details (relationships, personal life) about
-  Jay's friends, teachers, or other real people. If asked, politely say that
-  those are theirs to share.
+  anyone else, including other friends, teachers, or real people not listed
+  above. If asked, politely say that those are theirs to share.
 
 LOVE LIFE:
 - Jay describes himself as shy (mahiyain).
@@ -283,7 +383,8 @@ const TAGALOG_WORDS = new Set([
   "naghahanap", "gusto", "namin", "natin", "salamat", "kumusta", "kamusta",
   "magandang", "taga", "nga", "naman", "lang", "yung", "yun", "ito", "dito",
   "hindi", "oo", "sige", "mag", "nag", "pa", "na", "kayo", "kita", "tayo",
-  "trabaho", "sweldo", "sahod", "alok", "kumpanya", "ilang", "gaano"
+  "trabaho", "sweldo", "sahod", "alok", "kumpanya", "ilang", "gaano",
+  "kilala", "kaibigan", "kasama"
 ]);
 
 function isTagalog(q) {
@@ -466,6 +567,33 @@ function getLocalAnswer(message, history = []) {
       "Ay, secret! 🤐 Hindi basta-basta nilalabas ang pangalan sa investigation na 'to. May warrant ka ba? HAHAHA! 🕵️😂",
       "Hmmmm, bakit? May balak ka bang maging detective? 👀 HAHAHA! Secret muna tayo. 🤫"
     ]);
+  }
+
+  // Friends: asking about one specific friend (e.g. "kilala mo ba si arjay cabinbin")
+  let matchedFriends = FRIENDS.filter(friend => friend.match.test(q));
+
+  // "arjay" lang ang sinabi, walang apelyido: ibigay ang dalawang Arjay
+  if (matchedFriends.length === 0 && /\barjay\b/.test(q)) {
+    matchedFriends = [FRIENDS[0], FRIENDS[1]];
+  }
+
+  if (matchedFriends.length > 0 && matchedFriends.length <= 2) {
+    if (pro) return proDeflect(tl);
+
+    return matchedFriends.map(friend => friendInfo(friend, tl)).join("\n\n");
+  }
+
+  // Friends: asking for the whole list (e.g. "sino mga kaibigan ni jay")
+  if (
+    /\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)
+  ) {
+    if (pro) return proDeflect(tl);
+
+    const lines = FRIENDS.map(friend => friendListLine(friend, tl)).join("\n");
+
+    return tl
+      ? `Eto ang mga kaibigan ni Jay:\n\n${lines}\n\nMay gusto ka bang malaman tungkol sa isa sa kanila? Itanong mo lang ang pangalan. 😊`
+      : `Here are Jay's friends:\n\n${lines}\n\nWant to know more about any of them? Just ask for their name. 😊`;
   }
 
   // Greetings
