@@ -210,6 +210,13 @@ const FRIENDS = [
     tl: "Agriculture ang kurso niya.",
     en: "He studied Agriculture.",
     partner: ""
+  },
+    {
+    name: "Jeffryl Quitolbo",
+    match: /\b(quitolbo|jeffryl)\b/,
+    tl: "",
+    en: "",
+    partner: ""
   }
 ];
 
@@ -526,6 +533,19 @@ function getLocalAnswer(message, history = []) {
   const mode = detectMode(message, q, history);
   const pro = mode === "professional";
   const tl = isTagalog(q);
+
+  // Suggested questions (hardcoded, professional)
+  if (/^(lets chat|lets talk|let us chat)$/.test(q)) {
+    return "Hello, and welcome to Jay's portfolio! I'm happy to help. You can ask me about Jay's skills, internship experience, education, career goals, or how to contact him.";
+  }
+
+  if (/^career goals?$/.test(q)) {
+    return "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
+  }
+
+  if (/^contact jay$/.test(q)) {
+    return `You can reach Jay through the details below:\n\n${contactBlock()}`;
+  }
 
   if (pro && PRO_RE.test(q)) {
     return getProfessionalAnswer(q, tl);
