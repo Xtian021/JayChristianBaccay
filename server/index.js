@@ -283,7 +283,7 @@ const TESDA_CLASSMATES = [
   "Jay Ann Mabatan Bartolome",
   "Jenelyn Quillope Nacnac",
   "Jessica Ramos Manuel",
-  "Jhonabhel Domingo Colot",
+  "Jhonabhel Domingo Colot KSMA",
   "Jhunie Aquino",
   "Joanna Marie Delacruz Sablon",
   "Kim Besa",
@@ -296,7 +296,11 @@ const TESDA_CLASSMATES = [
 
 const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii"]);
 
-// Para ma-match ang pangalan kahit kulang ang apelyido o middle name
+// Mga first name na kailangan ng isa pang parte ng pangalan para ma-match
+// (para hindi ma-trigger ng "Jay", "Angel", o "Ed" na karaniwang salita/pangalan)
+const SKIP_FIRST_NAME_ONLY = new Set(["jay", "angel", "ed"]);
+
+// Para ma-match ang pangalan kahit first name lang, o kulang ang apelyido
 const tesdaIndex = TESDA_CLASSMATES.map(name => {
   const tokens = normalizeMessage(name)
     .replace(/\./g, "")
@@ -317,7 +321,8 @@ function findTesdaClassmates(q) {
     .filter(
       person =>
         words.has(person.first) &&
-        person.rest.some(word => words.has(word))
+        (person.rest.some(word => words.has(word)) ||
+          !SKIP_FIRST_NAME_ONLY.has(person.first))
     )
     .map(person => person.name);
 }
@@ -413,6 +418,11 @@ ${tesdaForPrompt()}
 - If asked whether Jay has a crush among his TESDA classmates, answer playfully
   and without naming anyone, for example that maybe there is, and "basta ikaw na"
   if the visitor is the one asking. Never confirm or name a specific person.
+- About Lerry Fortuno: ONLY talk about Lerry if the visitor asks about Lerry.
+  Never bring up Lerry on your own, never list Lerry as the crush, and never
+  hint at Lerry when the visitor asks about the crush in general. If asked about
+  Lerry, say Lerry is a TESDA classmate and answer playfully and playsafe, like
+  "malay mo crush, ewan natin", without confirming or denying anything.
 - Do not share or guess private details (relationships, personal life) about
   anyone else, including other friends, teachers, or real people not listed
   above. If asked, politely say that those are theirs to share.
@@ -640,6 +650,24 @@ function getLocalAnswer(message, history = []) {
       "AY SORRY NA HAHAHAHA! 😭 Nauna pa akong gumawa ng love story kaysa sa tanong mo! Sige, secret agent mode muna tayo. 🤣🕵️",
       "HAHAHAHA OO NGA NAMAN! 😭 Ikaw: crush lang. Ako: may wedding venue na sa imagination ko. KALMA LANG AKO! 💀🤣",
       "AY SHET HAHAHA! 😭 Nadala lang ako sa chismis! Sige, hindi na ako mag-a-advance ng episode. Ano nga ulit? 😂"
+    ]);
+  }
+
+  // Lerry: sasagot lang kapag tinanong si Lerry (playsafe, walang confirmation)
+  if (/\b(lerry|fortuno)\b/.test(q)) {
+    if (pro) return proDeflect(tl);
+
+    if (tl) {
+      return randomReply([
+        "Si Lerry Fortuno? Kaklase ni Jay sa TESDA Data Analytics III. 👀 Crush ba? Malay mo... ewan natin! HAHAHA! 🤫 Playsafe lang tayo, walang confirmation.",
+        "Ay, si Lerry! 😂 Kaklase yan ni Jay sa TESDA. Crush? Hmmmm, malay mo, malay mo hindi. Ewan natin! 🕵️ Basta wala akong sinasabi. CHAROT!",
+        "HAHAHA! 😭 Si Lerry Fortuno, kaklase ni Jay sa Data Analytics III. Kung crush man o hindi... ewan natin! Playsafe tayo dito. 🤐👀"
+      ]);
+    }
+
+    return randomReply([
+      "Lerry Fortuno is one of Jay's classmates in TESDA Data Analytics III. 👀 Is that the crush? Who knows! 🤫 No confirmation, we're playing it safe.",
+      "Lerry is a TESDA Data Analytics III classmate of Jay. 😄 Crush or not? We'll never tell! 🕵️ Playing it safe here."
     ]);
   }
 
