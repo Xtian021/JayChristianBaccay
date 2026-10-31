@@ -1452,4 +1452,5 @@ app.listen(PORT, () => {
   console.log(`Daily API attempt limit: ${GROK_DAILY_LIMIT}`);
   console.log(`Per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
   console.log(`Daily counter resets at midnight ${PH_TIMEZONE}.`);
+  console.log("Key preview:", GROK_API_KEY ? `${GROK_API_KEY.slice(0, 4)}...${GROK_API_KEY.slice(-4)} (length ${GROK_API_KEY.length})` : "none");
 });
