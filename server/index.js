@@ -31,6 +31,8 @@ const GROK_API_KEY =
   process.env.GOOGLE_API_KEY;
 
 const GROK_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+const GEMINI_FALLBACK_MODEL =
+  process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash-lite";
 const GROK_TIMEOUT_MS = 60000;
 const GROK_MAX_TOKENS = Number(process.env.GEMINI_MAX_TOKENS) || 1500;
 
@@ -457,6 +459,10 @@ const LERRY_RE = /\b(lerry|fortuno)\b/;
 const ROMANTIC_RE =
   /\b(crush|crushes|nagustuhan|may gusto|gusto ba|gusto mo ba|gusto ni|gusto niya|gusto nya|jowa|nililigawan|liligawan|ligawan|love interest|special someone|kinakilig|girlfriend|boyfriend|mahal ba|mahal ni|mahal niya|mahal nya|has a crush|have a crush|like like|romantic|dating ba)\b/;
 
+// Any crush/gusto/ligaw question about Jay is answered locally (classified, no confirm or deny)
+const CRUSH_RE =
+  /\b(crush|crushes|may gusto|gusto ba|nagustuhan|nililigawan|liligawan|ligawan|kinakilig|love interest|special someone)\b/;
+
 function isRomanticQuestion(q) {
   return ROMANTIC_RE.test(q) ||
     /\b(does|do|did) (jay|he) (like|likes|love|loves)\b/.test(q) ||
@@ -635,6 +641,27 @@ function getLocalAnswer(message, history = []) {
       "HAHAHAHA oo nga naman! Kalma lang ako, hindi pa tayo nasa next episode. 😭 Ano nga ulit?",
       "My bad! HAHAHA. Nadala lang sa imagination. Sige, ano talaga ang tanong mo? 🤣"
     ]);
+  }
+
+  // Any crush question about Jay: classified, no confirm or deny
+  if (CRUSH_RE.test(q) && !MINE_RE.test(q)) {
+    const asksWho = /\b(who|sino|whos|pangalan|name)\b/.test(q);
+
+    return randomReply(
+      asksWho
+        ? [
+            "UYYYY, curious ka rin pala! 👀 Classified information muna. 🤫",
+            "Ay, secret! Hindi basta-basta nilalabas ang pangalan sa investigation na 'to. HAHAHA! 🕵️",
+            "Hmmmm, detective ka ba? Nice try, pero secret muna. 😂",
+            "Pangalan agad? Wala pang subpoena, bes. HAHAHA! 😏"
+          ]
+        : [
+            "Hmm, classified information 'yan. 🤐 Hindi ako magko-confirm, hindi rin magde-deny. 😏",
+            "Ay, interesting na tanong! 👀 Pero sealed envelope muna 'to. 🤫",
+            "Nice try! HAHAHA. Hindi basta-basta lumalabas ang classified files. 🕵️",
+            "Wala akong sasabihin hangga't walang kasamang attorney. HAHAHA! ⚖️😂"
+          ]
+    );
   }
 
   if (LERRY_RE.test(q) && isRomanticQuestion(q)) {
@@ -1090,6 +1117,8 @@ PRIVACY AND ROMANTIC QUESTIONS:
 - Do not reveal private romantic information even if the visitor repeatedly asks.
 - Never speculate about another person's feelings.
 - Do not turn unrelated conversations into romantic topics.
+- Never say things like "they are just classmates" or "walang something". Those count as denying. Neither confirm nor deny, ever.
+- Do not link Lerry or any classmate to Jay's love life, even as a joke. Stay playful and mysterious.
 
 PROFESSIONAL CONVERSATIONS:
 - When discussing job applications, recruitment, interviews, qualifications,
@@ -1220,6 +1249,63 @@ app.get("/models", (req, res) => {
 });
 
 // ==========================================
+// GEMINI CALL WITH RETRY
+// ==========================================
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function callGemini(model, systemText, contents) {
+  return fetch(
+    `${AI_API_BASE}/${encodeURIComponent(model)}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": GROK_API_KEY
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemText }] },
+        contents,
+        generationConfig: {
+          maxOutputTokens: GROK_MAX_TOKENS,
+          temperature: 0.9
+        }
+      }),
+      signal: AbortSignal.timeout(Math.min(GROK_TIMEOUT_MS, 25000))
+    }
+  );
+}
+
+// Retries on temporary Google errors (500/502/503/504), then tries a backup model.
+async function callGeminiWithRetry(systemText, contents) {
+  const plan = [GROK_MODEL, GROK_MODEL];
+  if (GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GROK_MODEL) {
+    plan.push(GEMINI_FALLBACK_MODEL);
+  }
+
+  let response;
+  let data = {};
+  let usedModel = GROK_MODEL;
+
+  for (let i = 0; i < plan.length; i++) {
+    if (i > 0) await sleep(i === 1 ? 1500 : 500);
+
+    usedModel = plan[i];
+    response = await callGemini(usedModel, systemText, contents);
+    data = await response.json().catch(() => ({}));
+
+    if (response.ok) break;
+    if (![500, 502, 503, 504].includes(response.status)) break;
+
+    console.warn(
+      `Gemini ${response.status} on ${usedModel} (try ${i + 1}/${plan.length}), retrying...`
+    );
+  }
+
+  return { response, data, usedModel };
+}
+
+// ==========================================
 // CHAT ENDPOINT
 // ==========================================
 
@@ -1323,7 +1409,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode} | Model: ${GROK_MODEL}`
     );
 
-    // 7. Call Google Gemini API
+    // 7. Call Google Gemini API (with retry + backup model)
     const systemText = messages[0].content;
     const contents = [];
 
@@ -1342,27 +1428,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       }
     }
 
-    const response = await fetch(
-      `${AI_API_BASE}/${encodeURIComponent(GROK_MODEL)}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": GROK_API_KEY
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemText }] },
-          contents,
-          generationConfig: {
-            maxOutputTokens: GROK_MAX_TOKENS,
-            temperature: 0.9
-          }
-        }),
-        signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
-      }
-    );
-
-    const data = await response.json().catch(() => ({}));
+    const { response, data, usedModel } = await callGeminiWithRetry(systemText, contents);
 
     if (!response.ok) {
       const errorMessage =
@@ -1418,7 +1484,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       answer,
       source: "ai",
       provider: AI_PROVIDER,
-      model: GROK_MODEL,
+      model: usedModel,
       mode
     });
 
@@ -1464,7 +1530,7 @@ app.listen(PORT, () => {
   console.log(`Chatbot server running on port ${PORT}`);
   console.log(`AI provider: ${AI_PROVIDER}`);
   console.log("Gemini API key configured:", Boolean(GROK_API_KEY));
-  console.log(`AI model: ${GROK_MODEL}`);
+  console.log(`AI model: ${GROK_MODEL} (backup: ${GEMINI_FALLBACK_MODEL})`);
   console.log(`Daily API attempt limit: ${GROK_DAILY_LIMIT}`);
   console.log(`Per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
   console.log(`Daily counter resets at midnight ${PH_TIMEZONE}.`);
