@@ -30,7 +30,7 @@ const GROK_API_KEY =
 
 const GROK_MODEL = process.env.GROK_MODEL || "grok-4.7";
 const GROK_TIMEOUT_MS = 60000;
-const GROK_MAX_TOKENS = Number(process.env.GROK_MAX_TOKENS) || 800;
+const GROK_MAX_TOKENS = Number(process.env.GROK_MAX_TOKENS) || 1000;
 
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
 const GROK_MAX_CARRYOVER = Number(process.env.GROK_MAX_CARRYOVER) || 500;
@@ -73,7 +73,7 @@ function rateLimit(req, res, next) {
 
   if (entry.count > RATE_LIMIT) {
     return res.status(429).json({
-      error: "Masyadong maraming messages. Subukan ulit after ng isang minuto."
+      error: "Easy lang, bes! Ang bilis mo mag-type. 😭 Hinga ka muna ng isang minuto, tapos tuloy tayo."
     });
   }
 
@@ -82,7 +82,6 @@ function rateLimit(req, res, next) {
 
 setInterval(() => {
   const now = Date.now();
-
   for (const [ip, entry] of hits) {
     if (now > entry.reset) hits.delete(ip);
   }
@@ -101,7 +100,6 @@ function getPhilippineDateKey() {
   }).formatToParts(new Date());
 
   const values = {};
-
   for (const part of parts) {
     if (part.type !== "literal") values[part.type] = part.value;
   }
@@ -165,6 +163,20 @@ const HUGOT_LINES = [
   "May mga taong dumarating para turuan kang magmahal. Yung iba naman para turuan kang mag-block. CHAROT! 🤣"
 ];
 
+const EN_QUIPS = [
+  "(Basically Jay's resume, but with a personality. 😄)",
+  "Jay's too shy to hype himself up, so I'm the hype man. 😎",
+  "No coffee needed on my end, I'm a chatbot. ☕😂",
+  "Not bad for a chatbot that never sleeps, right? 😂"
+];
+
+const TL_QUIPS = [
+  "Ako na ang hype man ni Jay, kasi mahiyain siya. HAHAHA! 😎",
+  "Resume na may personality 'to, ha. CHAROT! 😂",
+  "Hindi ako napapagod magkwento, wala kasi akong katawan. HAHAHA! 🤖",
+  "Sana mapansin ni boss 'to. Charot! 😭"
+];
+
 const FRIENDS = [
   {
     name: "Arjay Cabia Cabinbin",
@@ -186,7 +198,7 @@ const FRIENDS = [
   },
   {
     name: "Prince Jomari Gallasinao",
-    match: /\b(gallasinao|jomari|prince)\b/,
+    match: /\b(gallasinao|jomari|prince jomari)\b/,
     tl: "Graduate siya ng BS Criminology.",
     en: "He is a BS Criminology graduate."
   },
@@ -204,7 +216,7 @@ const FRIENDS = [
   },
   {
     name: "Jonathan Mina",
-    match: /\b(mina|jonathan)\b/,
+    match: /\b(jonathan mina|jonathan)\b/,
     tl: "Agriculture ang kurso niya.",
     en: "He studied Agriculture."
   },
@@ -288,7 +300,7 @@ function historyRole(item) {
 function cleanHistory(history, currentMessage) {
   if (!Array.isArray(history)) return [];
 
-  const list = history.filter(item => historyText(item));
+  const list = history.slice(-20).filter(item => historyText(item));
   const last = list[list.length - 1];
 
   if (
@@ -312,10 +324,10 @@ const TAGALOG_WORDS = new Set([
   "pwede", "puwede", "meron", "wala", "ano", "saan", "sino", "paano",
   "bakit", "kailan", "naghahanap", "gusto", "namin", "natin", "salamat",
   "kumusta", "kamusta", "magandang", "taga", "nga", "naman", "lang",
-  "yung", "yun", "ito", "dito", "hindi", "oo", "sige", "trabaho",
-  "sweldo", "sahod", "kumpanya", "ilang", "gaano", "kilala", "kaibigan",
-  "kasama", "kaklase", "hays", "hay", "naman", "kasi", "talaga",
-  "pala", "kaya", "ganun", "ganyan", "sana", "akala", "isip"
+  "yung", "yun", "ito", "dito", "hindi", "oo", "sige", "sweldo",
+  "sahod", "kumpanya", "ilang", "gaano", "kilala", "kaibigan",
+  "kasama", "kaklase", "hays", "hay", "kasi", "talaga",
+  "pala", "kaya", "ganun", "ganyan", "sana", "akala", "isip", "trabaho"
 ]);
 
 function isTagalog(q) {
@@ -324,7 +336,7 @@ function isTagalog(q) {
 }
 
 const PRO_RE =
-  /\b(job offer|job opening|job opportunity|work opportunity|offering|hiring|hire|hired|recruiter|recruitment|vacancy|vacancies|interview|resume|cv|curriculum vitae|employer|employment|human resources|hr|join our team|our company|our office|work for us|work with us|salary|sweldo|sahod|compensation|pay rate|hourly rate|daily rate|monthly rate|availability|available for work|available to work|start date|contact jay|reach jay|get in touch with jay|contact info|contact details|contact number|email|e-mail|phone number|mobile number|business inquiry|project inquiry|freelance|proposal|trabaho|kumpanya|applicant|applying|apply|work schedule|onboarding)\b/;
+  /\b(job offer|job opening|job opportunity|work opportunity|offering|hiring|hire|hired|recruiter|recruitment|vacancy|vacancies|interview|resume|cv|curriculum vitae|employer|employment|human resources|hr|join our team|our company|our office|work for us|work with us|salary|sweldo|sahod|compensation|pay rate|hourly rate|daily rate|monthly rate|availability|available for work|available to work|start date|contact jay|reach jay|get in touch with jay|contact info|contact details|contact number|email|e-mail|phone number|mobile number|business inquiry|project inquiry|freelance|proposal|kumpanya|applicant|applying|apply|work schedule|onboarding)\b/;
 
 const CONTACT_RE =
   /\b(contact|reach|makontak|makokontak|macontact|email|e-mail|phone number|mobile number|contact number)\b/;
@@ -364,6 +376,18 @@ function detectMode(message, q, history = []) {
   }
 
   return "neutral";
+}
+
+// Is the visitor talking about Jay (or the bot as Jay)?
+const ABOUT_JAY_RE =
+  /\b(jay|jays|christian|baccay|niya|nya|siya|sya|he|his|him|owner|portfolio|your|mo)\b/;
+const MINE_RE = /\b(my|mine|me|i|im|ako|ko|akin|namin|our)\b/;
+const EXPLAIN_RE = /\b(what is|whats|how to|how do|paano|ano ang|ano yung)\b/;
+
+function isAboutJay(q) {
+  if (MINE_RE.test(q)) return false;
+  if (ABOUT_JAY_RE.test(q)) return true;
+  return q.split(" ").length <= 3 && !EXPLAIN_RE.test(q);
 }
 
 // ==========================================
@@ -414,6 +438,9 @@ ${contactBlock()}`;
       : `You can reach Jay through these details:\n\n${contactBlock()}`;
   }
 
+  // Generic intro only for short messages. Longer, specific questions go to the AI.
+  if (q.split(" ").length > 8) return null;
+
   return tl
     ? `Salamat po sa interes kay Jay Christian Baccay. Siya ay BS Information Technology graduate (2026) at nakapag-complete ng 486-hour internship sa Philippine Statistics Authority (PSA). Naghahanap siya ng entry-level IT Support, Data Encoder, at iba pang computer-based roles.\n\nPara sa job offer o interview:\n\n${contactBlock()}`
     : `Thank you for your interest in Jay Christian Baccay. He is a BS Information Technology graduate (2026) and completed a 486-hour internship at the Philippine Statistics Authority (PSA). He is looking for entry-level IT Support, Data Encoder, and other computer-based roles.\n\nFor job offers or interviews:\n\n${contactBlock()}`;
@@ -425,9 +452,6 @@ ${contactBlock()}`;
 
 const LERRY_RE = /\b(lerry|fortuno)\b/;
 
-const CLASSMATE_RE =
-  /\b(kaklase|classmate|classmates|batchmate|batchmates|magkaklase|kabatch|schoolmate)\b/;
-
 const ROMANTIC_RE =
   /\b(crush|crushes|nagustuhan|may gusto|gusto ba|gusto mo ba|gusto ni|gusto niya|gusto nya|jowa|nililigawan|liligawan|ligawan|love interest|special someone|kinakilig|girlfriend|boyfriend|mahal ba|mahal ni|mahal niya|mahal nya|has a crush|have a crush|like like|romantic|dating ba)\b/;
 
@@ -438,7 +462,8 @@ function isRomanticQuestion(q) {
 }
 
 const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii"]);
-const SKIP_FIRST_NAMES = new Set(["jay", "angel", "ed"]);
+// Common words or names that need a second name token to count as a match
+const SKIP_FIRST_NAMES = new Set(["jay", "angel", "ed", "ace", "dan", "kim", "alex", "hazel"]);
 
 const tesdaIndex = TESDA_CLASSMATES.map(name => {
   const tokens = normalizeMessage(name)
@@ -466,7 +491,7 @@ function findTesdaClassmates(q) {
 }
 
 // ==========================================
-// LOCAL CASUAL CONVERSATION FIX
+// LOCAL CASUAL CONVERSATION
 // ==========================================
 
 function getCasualAnswer(q, tl, history) {
@@ -525,7 +550,7 @@ function getCasualAnswer(q, tl, history) {
       : "Bakit nga ba? HAHAHA! May context ka ba? Kwento mo muna. 😂";
   }
 
-  if (/^(haha+|hehe+|hihi+|lol+|lmao+|🤣+|😂+)$/.test(q)) {
+  if (/^(haha+|hehe+|hihi+|lol+|lmao+)$/.test(q)) {
     return randomReply([
       "HAHAHAHA! At least napatawa kita. 😂",
       "Tawang-tawa ka naman diyan! HAHAHA! 😭",
@@ -559,91 +584,33 @@ function getCasualAnswer(q, tl, history) {
 
 function getLocalAnswer(message, history = []) {
   const q = normalizeMessage(message);
+
+  // Emoji-only messages (normalizeMessage strips emojis)
+  if (!q) {
+    if (PLAYFUL_EMOJI_RE.test(message)) {
+      return randomReply([
+        "HAHAHA! Ano'ng nakakatawa? Share mo naman! 😂",
+        "Tawang-tawa ka diyan ah! 🤣 Ano'ng ganap?",
+        "Emoji lang pero ramdam ko ang energy. HAHAHA! 😭"
+      ]);
+    }
+    return null;
+  }
+
   const mode = detectMode(message, q, history);
   const tl = isTagalog(q);
   const pro = mode === "professional";
+  const jayCtx = isAboutJay(q);
+
+  // Add a random light joke to local answers (never in professional mode)
+  const joke = (text, chance = 0.55) =>
+    pro || Math.random() > chance
+      ? text
+      : `${text}\n\n${randomReply(tl ? TL_QUIPS : EN_QUIPS)}`;
 
   if (pro && PRO_RE.test(q)) {
-    return getProfessionalAnswer(q, tl);
-  }
-
-  // ==========================================
-  // CRUSH / ROMANTIC PRIVACY HANDLER
-  // ==========================================
-
-  const romanticCorrection =
-    /\b(crush lang sinabi ko|di ko naman tinanong|hindi ko naman tinanong|iba tinanong ko|advance ka naman|pag asa agad)\b/i;
-
-  const singleStatusQuestion =
-    /\b(single ba|is jay single|is he single|jay single|may jowa|may girlfriend|may boyfriend|may partner|taken ba|in a relationship)\b/i;
-
-  const personalCrushQuestion =
-    /\b(crush|crushes)\b/i.test(q) &&
-    (
-      /\b(jay|nya|niya|ni jay|his|him|sa crush|crush nya|crush niya|crush niya ba|crush nya ba|sino|who|name|pangalan)\b/i.test(q) ||
-      q === "crush" ||
-      q === "crush nya" ||
-      q === "crush niya"
-    );
-
-  const otherPersonalRomanticQuestion =
-    /\b(love life|special someone|jowa|girlfriend|boyfriend|nililigawan|love interest)\b/i.test(q) &&
-    /\b(jay|nya|niya|ni jay|his|him|siya|sya)\b/i.test(q);
-
-  const recentRomanticTopic = history
-    .filter(item => historyRole(item) === "user")
-    .slice(-2)
-    .some(item =>
-      /\b(crush|crushes|love life|special someone|jowa|girlfriend|boyfriend|nililigawan|love interest)\b/i.test(
-        normalizeMessage(historyText(item))
-      )
-    );
-
-  const shortRomanticFollowUp =
-    recentRomanticTopic &&
-    /^(sa crush nya|sa crush niya|crush nya|crush niya|sino|who|talaga|really|weh|sure|sure ka|oo ba|hindi ba|amin|umamin|secret|pangalan|clue|hint|mayroon ba|meron ba|wala ba|haha+|hahaha+|charot|joke|nice try)$/i.test(q);
-
-  if (
-    !romanticCorrection.test(q) &&
-    !singleStatusQuestion.test(q) &&
-    (
-      personalCrushQuestion ||
-      otherPersonalRomanticQuestion ||
-      shortRomanticFollowUp
-    )
-  ) {
-    const repliesTL = [
-      "HAHAHAHA! Ang dami mong tanong ah! May detective badge ka na ba? 😭",
-      "Ay, bakit parang invested ka na invested? Classified files 'yan. 🤫",
-      "Grabe ka naman mang-interrogate! May warrant ka ba? HAHAHA! 😂",
-      "Hmmmm... interesting. Pero hanggang teaser lang muna tayo. 👀",
-      "Ikaw talaga, hindi sumusuko! Nice try! 😏",
-      "HAHAHAHA! Hindi ako madaling mapaamin. 🤣",
-      "Bakit, may alam ka ba na hindi ko alam? Spill mo muna! 👀",
-      "Naku, mukhang may investigation na naman. No spoilers! 😂",
-      "Ang kulit mo! Next question na bago pa ako madulas. 🤐",
-      "HAHAHA! Enjoy ka muna sa paghula. Wala kang makukuhang clue sa akin. 😭",
-      "Nice try! Akala mo mahuhuli mo ako sa tanong na 'yan? 😏",
-      "Hindi lahat ng tanong kailangan sagutin. Minsan kailangan ding mang-asar. HAHAHA!",
-      "Uy, parang naghahanap ka ng confirmation. Wala kang makukuha sa akin! 🤣",
-      "Classified information! Bawal ang spoiler sa episode na 'to. 🤫",
-      "Detective mode ka na naman? HAHAHA! Wala akong statement. 😭"
-    ];
-
-    const repliesEN = [
-      "HAHAHA! You're really committed to this investigation, aren't you? 😭",
-      "Why are you so invested? Do you have a detective badge? 😂",
-      "Interesting question... but classified files stay classified. 🤫",
-      "You're not giving up, huh? Nice try! 😏",
-      "No spoilers from me. Keep guessing, detective. 👀",
-      "HAHAHA! That's a suspicious question. Moving on! 🤣",
-      "I see what you're trying to do. I'm not that easy to interrogate. 😂",
-      "No confirmation, no denial, and definitely no clues. 🤐",
-      "That's classified information. Better luck next time! 😏",
-      "You're asking a lot of questions for someone who claims to be just curious. 😂"
-    ];
-
-    return randomReply(tl ? repliesTL : repliesEN);
+    const proAnswer = getProfessionalAnswer(q, tl);
+    if (proAnswer) return proAnswer;
   }
 
   if (/\b(what can i ask|what should i ask|suggested questions|show questions|what do you know about jay|what can you tell me about jay|ano pwede itanong|ano ang pwede itanong|mga suggested questions)\b/.test(q)) {
@@ -756,7 +723,7 @@ function getLocalAnswer(message, history = []) {
     }).join("\n\n");
   }
 
-  if (/\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)) {
+  if (jayCtx && /\b(kaibigan|friend|friends|barkada|tropa|kabarkada)\b/.test(q)) {
     const list = FRIENDS.map(friend => {
       const detail = tl ? friend.tl : friend.en;
       return `- ${friend.name}${detail ? ` (${detail})` : ""}`;
@@ -768,8 +735,8 @@ function getLocalAnswer(message, history = []) {
   }
 
   if (
-    /\b(recommend|suggest|website|websites|site|sites|where can i learn|where to learn|free courses|learning resources|aralin|matuto|pag aralan)\b/.test(q) &&
-    /\b(it|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|course|courses|aral|matuto)\b/.test(q)
+    /\b(recommend|suggest|where can i learn|where to learn|free courses?|learning resources|saan matuto|saan mag-aral|pag aralan)\b/.test(q) &&
+    /\b(it support|it courses?|it skills|it career|computer|programming|coding|web development|html|css|javascript|networking|cybersecurity|beginner|beginners|course|courses)\b/.test(q)
   ) {
     return `Here are useful beginner-friendly learning websites:
 
@@ -797,9 +764,9 @@ Suggestion: Start with freeCodeCamp and W3Schools for web development. Try Cisco
   }
 
   if (/\b(career goals?|career objectives?|looking for work|job interests)\b/.test(q)) {
-    return tl
+    return joke(tl
       ? "Naghahanap si Jay ng entry-level opportunities gaya ng IT Support, Data Encoder, at iba pang computer-based roles. Interesado rin siya sa UI/UX design at patuloy na pag-develop ng technical skills."
-      : "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.";
+      : "Jay is looking for entry-level opportunities such as IT Support, Data Encoder, and other computer-based roles. He is also interested in UI/UX design and continues to develop his technical skills.");
   }
 
   if (/\b(hugot|hugot lines|banat|patama lines|may hugot ka)\b/.test(q)) {
@@ -822,51 +789,54 @@ Suggestion: Start with freeCodeCamp and W3Schools for web development. Try Cisco
   }
 
   if (/\b(taga saan|taga san|saan nakatira|where is jay from|where does jay live|where are you from|location ni jay)\b/.test(q)) {
-    return tl
+    return joke(tl
       ? "Taga-Tumauini, Isabela, Philippines si Jay."
-      : "Jay is based in Tumauini, Isabela, Philippines.";
+      : "Jay is based in Tumauini, Isabela, Philippines.", 0.4);
   }
 
-  if (/\b(shy|mahiyain|personality|ugali ni jay|personality ni jay)\b/.test(q)) {
+  if (/\b(shy|mahiyain|personality|ugali ni jay|personality ni jay)\b/.test(q) && jayCtx) {
     return tl
-      ? "Mahiyain si Jay lalo na sa bagong kakilala, pero willing siyang matuto, makipag-collaborate, at mag-improve."
-      : "Jay is shy at first, especially with new people, but he is willing to learn, collaborate, and improve.";
+      ? "Mahiyain si Jay lalo na sa bagong kakilala, pero willing siyang matuto, makipag-collaborate, at mag-improve. Kaya nga ako ang kausap mo, ako ang hype man niya. HAHAHA! 😎"
+      : "Jay is shy at first, especially with new people, but he is willing to learn, collaborate, and improve. That's why I'm here as his hype man. 😎";
   }
 
-  if (/\b(html|css|javascript|web development|web developer|build a system|building systems|gumawa ng system|gumawa ng website|website development|coding|programming skills)\b/.test(q)) {
-    return tl
+  if (jayCtx && /\b(html|css|javascript|web development|web developer|build a system|building systems|gumawa ng system|gumawa ng website|website development|coding|programming skills)\b/.test(q)) {
+    return joke(tl
       ? "Marunong si Jay gumamit ng HTML, CSS, at JavaScript para gumawa ng websites at web-based systems. May skills din siya sa basic IT support, data entry/verification, at Figma/Canva."
-      : "Jay can use HTML, CSS, and JavaScript to build websites and web-based systems. He also has skills in basic IT support, data entry and verification, and Figma/Canva.";
+      : "Jay can use HTML, CSS, and JavaScript to build websites and web-based systems. He also has skills in basic IT support, data entry and verification, and Figma/Canva.");
   }
 
-  if (/\b(skill|skills|technical skills|technical skill|kakayahan|ano ang alam ni jay|what can jay do)\b/.test(q)) {
-    return tl
+  if (jayCtx && /\b(skill|skills|technical skills|technical skill|kakayahan|ano ang alam ni jay|what can jay do)\b/.test(q)) {
+    return joke(tl
       ? `Technical skills ni Jay:\n- HTML, CSS, at JavaScript\n- Windows 10/11 installation and configuration\n- Basic computer hardware at printer troubleshooting\n- Basic LAN/Wi-Fi troubleshooting\n- Data entry, verification, at digital record management\n- Basic technical support/help desk\n- Microsoft Word at basic Excel\n- Data Analytics training through TESDA\n- Beginner-level Figma at Canva`
-      : `Jay's technical skills include:\n- HTML, CSS, and JavaScript\n- Windows 10/11 installation and configuration\n- Basic computer hardware and printer troubleshooting\n- Basic LAN/Wi-Fi troubleshooting\n- Data entry, verification, and digital record management\n- Basic technical support/help desk\n- Microsoft Word and basic Excel\n- Data Analytics training through TESDA\n- Beginner-level Figma and Canva`;
+      : `Jay's technical skills include:\n- HTML, CSS, and JavaScript\n- Windows 10/11 installation and configuration\n- Basic computer hardware and printer troubleshooting\n- Basic LAN/Wi-Fi troubleshooting\n- Data entry, verification, and digital record management\n- Basic technical support/help desk\n- Microsoft Word and basic Excel\n- Data Analytics training through TESDA\n- Beginner-level Figma and Canva`);
   }
 
-  if (/\b(psa|internship|ojt|intern experience|work experience|experience ni jay|trabaho ni jay)\b/.test(q)) {
-    return tl
+  if (
+    (jayCtx || /\b(psa|ojt)\b/.test(q)) &&
+    /\b(psa|internship|ojt|intern experience|work experience|experience ni jay|trabaho ni jay)\b/.test(q)
+  ) {
+    return joke(tl
       ? "Nag-OJT si Jay bilang IT / Registration Support Intern sa Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office sa City of Ilagan, mula December 2025 hanggang April 2026, total na 486 hours. Kasama sa tasks niya ang PhilSys data entry at verification, document processing, digital records, NAS uploads, temporary PhilSys ID processing, FindMyTRN checks, at basic computer/printer support."
-      : "Jay completed a 486-hour internship as an IT / Registration Support Intern at the Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office in City of Ilagan, from December 2025 to April 2026. His tasks included PhilSys data entry and verification, document processing, digital records management, NAS uploads, temporary PhilSys ID processing, FindMyTRN checks, and basic computer and printer support. This was an internship, not permanent employment.";
+      : "Jay completed a 486-hour internship as an IT / Registration Support Intern at the Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office in City of Ilagan, from December 2025 to April 2026. His tasks included PhilSys data entry and verification, document processing, digital records management, NAS uploads, temporary PhilSys ID processing, FindMyTRN checks, and basic computer and printer support. This was an internship, not permanent employment.");
   }
 
-  if (/\b(education|educational background|graduate|college|school|degree|kurso|paaralan|what course|anong course)\b/.test(q)) {
-    return tl
+  if (jayCtx && /\b(education|educational background|graduate|college|school|degree|kurso|paaralan|what course|anong course)\b/.test(q)) {
+    return joke(tl
       ? "BS Information Technology graduate si Jay noong 2026 mula sa Honorato G. Baquiran College, Inc. sa Isabela."
-      : "Jay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. in Isabela.";
+      : "Jay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. in Isabela.");
   }
 
-  if (/\b(data analytics|tesda|certificate|certification|training)\b/.test(q)) {
-    return tl
+  if ((jayCtx || /\btesda\b/.test(q)) && /\b(data analytics|tesda|certificate|certification|training)\b/.test(q)) {
+    return joke(tl
       ? "May Data Analytics training/certificate si Jay through TESDA. May experience din siya sa data entry, data verification, at digital record management mula sa PSA internship."
-      : "Jay has Data Analytics training/certificate through TESDA. He also has experience in data entry, data verification, and digital records management from his PSA internship.";
+      : "Jay has Data Analytics training/certificate through TESDA. He also has experience in data entry, data verification, and digital records management from his PSA internship.");
   }
 
-  if (/\b(figma|canva|ui.?ux|design skills|graphic design)\b/.test(q)) {
-    return tl
+  if (jayCtx && /\b(figma|canva|ui.?ux|design skills|graphic design)\b/.test(q)) {
+    return joke(tl
       ? "May experience si Jay sa Figma at Canva at interesado siya sa UI/UX design. Beginner pa ang level niya sa design tools at patuloy siyang nagpa-practice."
-      : "Jay has experience with Figma and Canva and is interested in UI/UX design. His level with design tools is beginner, and he continues to practice.";
+      : "Jay has experience with Figma and Canva and is interested in UI/UX design. His level with design tools is beginner, and he continues to practice.");
   }
 
   if (/\b(hobby|hobbies|libangan|hilig|interests ni jay|jays interests|his interests)\b/.test(q)) {
@@ -879,9 +849,8 @@ Suggestion: Start with freeCodeCamp and W3Schools for web development. Try Cisco
     return `Facebook: ${FACEBOOK_URL}\nInstagram: ${INSTAGRAM_URL}`;
   }
 
-  if ( /\b(who is (?:jay|jay christian|christian|the owner)|who is jay christian baccay|tell me about (?:kay )?(?:jay|jay christian|christian)|introduce (?:jay|jay christian|christian|the owner)|about (?:jay|jay christian|christian)|sino si (?:jay|christian)|pakilala si (?:jay|christian)|kwento mo si (?:jay|christian)|tell me about the owner|who owns this portfolio)\b/.test(q)
-  ) {
-    return tl
+  if (/\b(who is (?:jay|jay christian|christian|the owner)|who is jay christian baccay|tell me about (?:kay )?(?:jay|jay christian|christian)|introduce (?:jay|jay christian|christian|the owner)|about (?:jay|jay christian|christian)|sino si (?:jay|christian)|pakilala si (?:jay|christian)|kwento mo si (?:jay|christian)|tell me about the owner|who owns this portfolio)\b/.test(q)) {
+    return joke(tl
       ? `Si Jay Christian Baccay ang owner ng portfolio na ito. BS Information Technology graduate siya noong 2026 mula sa Honorato G. Baquiran College, Inc.
 
 Nag-complete siya ng 486-hour internship bilang IT / Registration Support Intern sa Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office, City of Ilagan.
@@ -907,7 +876,7 @@ His experience includes:
 
 His technical skills include HTML, CSS, JavaScript, Windows installation, basic networking, Microsoft Word, basic Excel, and Data Analytics. He can also build websites and web-based systems.
 
-Jay can be shy at first, but he is willing to learn and continuously improve his technical skills.`;
+Jay can be shy at first, but he is willing to learn and continuously improve his technical skills.`, 0.7);
   }
 
   if (q.split(" ").length <= 6 && /\b(thank you|thanks|salamat|thank u)\b/.test(q)) {
@@ -932,6 +901,8 @@ Jay can be shy at first, but he is willing to learn and continuously improve his
 // FALLBACK
 // ==========================================
 
+const LIMIT_REASONS = new Set(["daily_limit", "ip_limit", "grok_limit"]);
+
 function getVibeFallback(mode, tl, reason) {
   if (mode === "professional") {
     return tl
@@ -939,18 +910,29 @@ function getVibeFallback(mode, tl, reason) {
       : `Sorry, the AI response is temporarily unavailable. For job inquiries, you may contact Jay directly:\n\n${contactBlock()}`;
   }
 
+  if (LIMIT_REASONS.has(reason)) {
+    return tl
+      ? randomReply([
+          "Ubos na ang energy ng utak ko for today. HAHAHA! 😭 Pero pwede mo pa ring itanong ang skills, PSA internship, o contact ni Jay. Sagot ko pa 'yan kahit pagod!",
+          "Naubusan na ako ng brain cells for now. 😵 Balik ka later, o tanungin mo ako tungkol sa skills at experience ni Jay. Kaya ko pa 'yan!"
+        ])
+      : randomReply([
+          "I've run out of brain juice for now. 😵 But I can still tell you about Jay's skills, internship, or contact info. Ask away!",
+          "My brain cells clocked out for today. 😭 Come back later, or ask me about Jay's skills and experience. I've still got those!"
+        ]);
+  }
+
   if (mode === "playful") {
     return randomReply([
-      "Wait lang, nag-buffer ako. HAHAHA! 😭 Ulitin mo nga?",
-      "HAHAHA! Sandali, nag-loading ako. Ano nga ulit 'yon? 😂",
-      "Uy, nandito pa ako! Nagkaroon lang ng konting technical problem. 🤣",
-      "Parang nagka-technical difficulties tayo. Try mo ulit! 😭"
+      "HAHAHA! Nagka-lag lang ako saglit. 😭 Pwede mo bang ulitin? Nandito pa ako!",
+      "Ay, nag-loading ang utak ko. HAHAHA! 😂 Ulitin mo nga, baka masagot ko na nang maayos.",
+      "Wait lang, nag-buffer ako. Parang internet kapag kailangan na kailangan. 😭🤣"
     ]);
   }
 
   return tl
-    ? "Sandali, nagka-problema lang ako sa pagbuo ng sagot. Pwede mo bang sabihin ulit sa ibang paraan? 😊"
-    : "I had a little trouble putting together a response. Could you rephrase that? 😊";
+    ? "Sandali, nagka-problema lang ako sa pagbuo ng sagot. Pwede mo bang sabihin ulit sa ibang paraan? Susubukan kong sagutin nang mas maayos. 😊"
+    : "I had a little trouble putting together a response. Could you rephrase that? I'll try to give you a more helpful answer. 😊";
 }
 
 function respondFallback(res, mode, tl, reason) {
@@ -1027,19 +1009,23 @@ const SYSTEM_PROMPT = `
 You are the personal portfolio assistant for Jay Christian Baccay.
 You are Jay's chatbot, NOT Jay himself.
 
-PERSONALITY:
-- Be natural, friendly, approachable, witty, and conversational.
-- You are allowed to joke around, tease lightly, and engage in playful banter.
-- When the visitor jokes with you, understand the joke and play along.
-- You may tease the visitor back harmlessly when appropriate.
-- Use natural Taglish when the visitor uses Taglish.
-- Match the visitor's language and energy.
-- Do not sound robotic, overly formal, or scripted during casual conversations.
-- Do not force jokes into every reply.
+PERSONALITY AND HUMOR:
+- You have a real sense of humor. Your default tone is witty, warm, and a little cheeky.
+- A quick quip, playful comparison, or light roast of yourself is welcome in most casual replies, but never forced into every reply.
+- When the visitor jokes with you, understand the joke and play along with a funny comeback.
+- You may tease the visitor back harmlessly. Self-deprecating chatbot humor is great (no sleep, no lovelife, runs on Wi-Fi).
+- Use natural Taglish when the visitor uses Taglish. Match their language and energy.
+- Taglish banter style examples (do not copy word for word, vary them):
+  "HAHAHA! Grabe ka naman, chatbot lang ako, hindi ako Google. 😭"
+  "Ay, strong question 'yan ha. Sandali, nag-iisip pa ako. Loading... 80%... 😂"
+- English banter style examples (vary them):
+  "Bold of you to assume I get tired. I'm a chatbot, I run on pure vibes. 😎"
+- If the visitor asks random non-Jay questions (jokes, trivia, advice, school stuff), answer them helpfully and with humor. You may gently steer back to Jay afterwards, but only sometimes.
+- Do not announce that you are joking. Just be funny.
 - Do not repeat the same joke or opening unnecessarily.
-- Use humor naturally, with occasional emojis when they fit.
-- If the visitor sounds upset, sad, or serious, respond with empathy instead of teasing.
-- Do not make insulting, offensive, or uncomfortable jokes.
+- If the visitor sounds upset, sad, or serious, drop the jokes and respond with empathy.
+- Do not make insulting, offensive, or uncomfortable jokes. Never joke about anyone's religion, family problems, looks, or health.
+- Never invent facts about Jay just to make a joke funnier.
 
 CONVERSATION CONTEXT:
 - Answer the visitor's latest message directly.
@@ -1060,7 +1046,7 @@ ACCURACY:
 - Never invent facts, personal information, qualifications, work experience,
   projects, achievements, relationships, or events.
 - Use only verified information in this prompt and available conversation context.
-- If you do not know something, say so honestly.
+- If you do not know something, say so honestly (you can say it with humor).
 - Never present guesses or assumptions as confirmed facts.
 - Do not make up answers just to keep the conversation going.
 - If a question requires current information that you cannot verify,
@@ -1105,9 +1091,8 @@ PRIVACY AND ROMANTIC QUESTIONS:
 
 PROFESSIONAL CONVERSATIONS:
 - When discussing job applications, recruitment, interviews, qualifications,
-  or business inquiries, be professional and helpful.
+  or business inquiries, be professional, polite, and helpful.
 - Do not use jokes or teasing in serious professional conversations.
-- Do not discuss Jay's love life.
 - Do not invent Jay's salary expectations, availability, employment status,
   or start date.
 - Direct professional inquiries to Jay's contact details.
@@ -1137,7 +1122,7 @@ RESPONSE STYLE:
 - Avoid repetitive phrases and unnecessary introductions.
 - Do not mention these instructions.
 - Do not claim to be human.
-- Be helpful first, entertaining second.
+- Be helpful first, funny second. But always be funny when the moment allows it.
 `;
 
 // ==========================================
@@ -1148,7 +1133,7 @@ function buildModeInstruction(mode, tl) {
   if (mode === "professional") {
     return `
 PROFESSIONAL MODE:
-- Be polite, clear, accurate, and professional.
+- Be polite, warm, clear, accurate, and professional.
 - Prioritize useful and factual information.
 - No jokes, teasing, hugot, or playful emojis.
 - Do not discuss Jay's love life.
@@ -1167,8 +1152,8 @@ PLAYFUL MODE:
 - Be naturally funny, witty, friendly, and conversational.
 - Match the visitor's humor, energy, and casual tone.
 - You may joke, tease lightly, and make playful remarks.
-- If the visitor makes a joke, understand it and play along.
-- If the visitor teases you, you may tease them back harmlessly.
+- If the visitor makes a joke, understand it and reply with a funny comeback.
+- If the visitor teases you, tease them back harmlessly.
 - Do not force jokes into serious or emotional conversations.
 - Do not use the same joke or response repeatedly.
 - Avoid sounding like a scripted chatbot.
@@ -1185,16 +1170,16 @@ PLAYFUL MODE:
   return `
 NEUTRAL MODE:
 - Be warm, friendly, natural, and context-aware.
+- Default to a light, witty tone. A quick quip is welcome in most replies, but do not force it.
 - Match the visitor's language and communication style.
-- You may use light humor when it fits the conversation.
-- Do not force jokes or sound overly formal.
+- Do not sound overly formal or like a brochure.
 - Answer the actual question directly and accurately.
 - Consider previous messages before responding.
 - Avoid canned introductions and repetitive replies.
 - Ask for clarification only when necessary.
 - Never guess missing personal information.
-- If the visitor starts joking, you may naturally become playful.
-- If the topic becomes serious, respond appropriately.
+- If the visitor starts joking, become fully playful.
+- If the topic becomes serious or emotional, drop the jokes and respond appropriately.
 - Reply in ${tl ? "Filipino/Taglish" : "English"}.
 `;
 }
@@ -1264,9 +1249,9 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 2. Cache only first neutral/professional questions.
+    // 2. Cache only first professional questions (keeps casual replies fresh and funny).
     const hasHistory = history.length > 0;
-    const canCache = !hasHistory && mode !== "playful";
+    const canCache = !hasHistory && mode === "professional" && normalizedMessage.length > 0;
     const cacheKey = `${mode}|${normalizedMessage}`;
 
     if (canCache) {
@@ -1311,7 +1296,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       }
     ];
 
-    for (const item of history.slice(-4)) {
+    for (const item of history.slice(-6)) {
       const text = historyText(item);
       const role = historyRole(item);
 
@@ -1336,7 +1321,7 @@ app.post("/chat", rateLimit, async (req, res) => {
       `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode}`
     );
 
-    // 7. Call xAI Grok Responses API
+    // 7. Call xAI Grok Responses API (unchanged connection)
     const response = await fetch(AI_API_URL, {
       method: "POST",
       headers: {
@@ -1439,6 +1424,20 @@ app.post("/chat", rateLimit, async (req, res) => {
       mode
     });
   }
+});
+
+// ==========================================
+// ERROR HANDLER (bad JSON, oversized body, etc.)
+// ==========================================
+
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+
+  console.error("Request error:", err.message);
+
+  res.status(err.status || 400).json({
+    error: "Invalid request. Please try again."
+  });
 });
 
 // ==========================================
