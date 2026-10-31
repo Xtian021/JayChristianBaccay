@@ -82,6 +82,7 @@ function rateLimit(req, res, next) {
 
 setInterval(() => {
   const now = Date.now();
+
   for (const [ip, entry] of hits) {
     if (now > entry.reset) hits.delete(ip);
   }
@@ -100,6 +101,7 @@ function getPhilippineDateKey() {
   }).formatToParts(new Date());
 
   const values = {};
+
   for (const part of parts) {
     if (part.type !== "literal") values[part.type] = part.value;
   }
@@ -422,6 +424,7 @@ ${contactBlock()}`;
 // ==========================================
 
 const LERRY_RE = /\b(lerry|fortuno)\b/;
+
 const CLASSMATE_RE =
   /\b(kaklase|classmate|classmates|batchmate|batchmates|magkaklase|kabatch|schoolmate)\b/;
 
@@ -562,6 +565,85 @@ function getLocalAnswer(message, history = []) {
 
   if (pro && PRO_RE.test(q)) {
     return getProfessionalAnswer(q, tl);
+  }
+
+  // ==========================================
+  // CRUSH / ROMANTIC PRIVACY HANDLER
+  // ==========================================
+
+  const romanticCorrection =
+    /\b(crush lang sinabi ko|di ko naman tinanong|hindi ko naman tinanong|iba tinanong ko|advance ka naman|pag asa agad)\b/i;
+
+  const singleStatusQuestion =
+    /\b(single ba|is jay single|is he single|jay single|may jowa|may girlfriend|may boyfriend|may partner|taken ba|in a relationship)\b/i;
+
+  const personalCrushQuestion =
+    /\b(crush|crushes)\b/i.test(q) &&
+    (
+      /\b(jay|nya|niya|ni jay|his|him|sa crush|crush nya|crush niya|crush niya ba|crush nya ba|sino|who|name|pangalan)\b/i.test(q) ||
+      q === "crush" ||
+      q === "crush nya" ||
+      q === "crush niya"
+    );
+
+  const otherPersonalRomanticQuestion =
+    /\b(love life|special someone|jowa|girlfriend|boyfriend|nililigawan|love interest)\b/i.test(q) &&
+    /\b(jay|nya|niya|ni jay|his|him|siya|sya)\b/i.test(q);
+
+  const recentRomanticTopic = history
+    .filter(item => historyRole(item) === "user")
+    .slice(-2)
+    .some(item =>
+      /\b(crush|crushes|love life|special someone|jowa|girlfriend|boyfriend|nililigawan|love interest)\b/i.test(
+        normalizeMessage(historyText(item))
+      )
+    );
+
+  const shortRomanticFollowUp =
+    recentRomanticTopic &&
+    /^(sa crush nya|sa crush niya|crush nya|crush niya|sino|who|talaga|really|weh|sure|sure ka|oo ba|hindi ba|amin|umamin|secret|pangalan|clue|hint|mayroon ba|meron ba|wala ba|haha+|hahaha+|charot|joke|nice try)$/i.test(q);
+
+  if (
+    !romanticCorrection.test(q) &&
+    !singleStatusQuestion.test(q) &&
+    (
+      personalCrushQuestion ||
+      otherPersonalRomanticQuestion ||
+      shortRomanticFollowUp
+    )
+  ) {
+    const repliesTL = [
+      "HAHAHAHA! Ang dami mong tanong ah! May detective badge ka na ba? 😭",
+      "Ay, bakit parang invested ka na invested? Classified files 'yan. 🤫",
+      "Grabe ka naman mang-interrogate! May warrant ka ba? HAHAHA! 😂",
+      "Hmmmm... interesting. Pero hanggang teaser lang muna tayo. 👀",
+      "Ikaw talaga, hindi sumusuko! Nice try! 😏",
+      "HAHAHAHA! Hindi ako madaling mapaamin. 🤣",
+      "Bakit, may alam ka ba na hindi ko alam? Spill mo muna! 👀",
+      "Naku, mukhang may investigation na naman. No spoilers! 😂",
+      "Ang kulit mo! Next question na bago pa ako madulas. 🤐",
+      "HAHAHA! Enjoy ka muna sa paghula. Wala kang makukuhang clue sa akin. 😭",
+      "Nice try! Akala mo mahuhuli mo ako sa tanong na 'yan? 😏",
+      "Hindi lahat ng tanong kailangan sagutin. Minsan kailangan ding mang-asar. HAHAHA!",
+      "Uy, parang naghahanap ka ng confirmation. Wala kang makukuha sa akin! 🤣",
+      "Classified information! Bawal ang spoiler sa episode na 'to. 🤫",
+      "Detective mode ka na naman? HAHAHA! Wala akong statement. 😭"
+    ];
+
+    const repliesEN = [
+      "HAHAHA! You're really committed to this investigation, aren't you? 😭",
+      "Why are you so invested? Do you have a detective badge? 😂",
+      "Interesting question... but classified files stay classified. 🤫",
+      "You're not giving up, huh? Nice try! 😏",
+      "No spoilers from me. Keep guessing, detective. 👀",
+      "HAHAHA! That's a suspicious question. Moving on! 🤣",
+      "I see what you're trying to do. I'm not that easy to interrogate. 😂",
+      "No confirmation, no denial, and definitely no clues. 🤐",
+      "That's classified information. Better luck next time! 😏",
+      "You're asking a lot of questions for someone who claims to be just curious. 😂"
+    ];
+
+    return randomReply(tl ? repliesTL : repliesEN);
   }
 
   if (/\b(what can i ask|what should i ask|suggested questions|show questions|what do you know about jay|what can you tell me about jay|ano pwede itanong|ano ang pwede itanong|mga suggested questions)\b/.test(q)) {
@@ -859,15 +941,16 @@ function getVibeFallback(mode, tl, reason) {
 
   if (mode === "playful") {
     return randomReply([
-      "HAHAHA! Nagka-lag lang ako saglit. 😭 Pwede mo bang ulitin? Nandito pa ako!",
-      "Ay, nag-loading ang utak ko. HAHAHA! 😂 Ulitin mo nga, baka masagot ko na nang maayos.",
-      "Wait lang, nag-buffer ako. Parang internet kapag kailangan na kailangan. 😭🤣"
+      "Wait lang, nag-buffer ako. HAHAHA! 😭 Ulitin mo nga?",
+      "HAHAHA! Sandali, nag-loading ako. Ano nga ulit 'yon? 😂",
+      "Uy, nandito pa ako! Nagkaroon lang ng konting technical problem. 🤣",
+      "Parang nagka-technical difficulties tayo. Try mo ulit! 😭"
     ]);
   }
 
   return tl
-    ? "Sandali, nagka-problema lang ako sa pagbuo ng sagot. Pwede mo bang sabihin ulit sa ibang paraan? Susubukan kong sagutin nang mas maayos. 😊"
-    : "I had a little trouble putting together a response. Could you rephrase that? I'll try to give you a more helpful answer. 😊";
+    ? "Sandali, nagka-problema lang ako sa pagbuo ng sagot. Pwede mo bang sabihin ulit sa ibang paraan? 😊"
+    : "I had a little trouble putting together a response. Could you rephrase that? 😊";
 }
 
 function respondFallback(res, mode, tl, reason) {
@@ -1024,6 +1107,7 @@ PROFESSIONAL CONVERSATIONS:
 - When discussing job applications, recruitment, interviews, qualifications,
   or business inquiries, be professional and helpful.
 - Do not use jokes or teasing in serious professional conversations.
+- Do not discuss Jay's love life.
 - Do not invent Jay's salary expectations, availability, employment status,
   or start date.
 - Direct professional inquiries to Jay's contact details.
