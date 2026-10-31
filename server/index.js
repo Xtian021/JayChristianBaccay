@@ -797,10 +797,35 @@ Suggestion: Start with freeCodeCamp and W3Schools for web development. Try Cisco
     return `Facebook: ${FACEBOOK_URL}\nInstagram: ${INSTAGRAM_URL}`;
   }
 
-  if (/\b(who is jay|who is jay christian|tell me about jay|introduce jay|about jay|sino si jay|pakilala si jay|who is christian)\b/.test(q)) {
+  if ( /\b(who is (?:jay|jay christian|christian|the owner)|who is jay christian baccay|tell me about (?:kay )?(?:jay|jay christian|christian)|introduce (?:jay|jay christian|christian|the owner)|about (?:jay|jay christian|christian)|sino si (?:jay|christian)|pakilala si (?:jay|christian)|kwento mo si (?:jay|christian)|tell me about the owner|who owns this portfolio)\b/.test(q)
+  ) {
     return tl
-      ? "Si Jay Christian Baccay ay BS Information Technology graduate noong 2026 mula sa Honorato G. Baquiran College, Inc. Nag-OJT siya sa PSA at may skills sa web development, basic IT support, at data entry. Mahiyain minsan, pero willing matuto. 😊"
-      : "Jay Christian Baccay is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc. He completed an internship at the Philippine Statistics Authority and has skills in web development, basic IT support, and data entry.";
+      ? `Si Jay Christian Baccay ang owner ng portfolio na ito. BS Information Technology graduate siya noong 2026 mula sa Honorato G. Baquiran College, Inc.
+
+Nag-complete siya ng 486-hour internship bilang IT / Registration Support Intern sa Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office, City of Ilagan.
+
+May experience siya sa:
+- PhilSys data entry at verification
+- Document processing at digital record management
+- NAS uploads at temporary PhilSys ID processing
+- Basic computer at printer troubleshooting
+
+Technical skills niya ang HTML, CSS, JavaScript, Windows installation, basic networking, Microsoft Word, basic Excel, at Data Analytics. Marunong din siyang gumawa ng websites at web-based systems.
+
+Mahiyain siya minsan, pero willing matuto at patuloy na nagde-develop ng skills. 😊`
+      : `Jay Christian Baccay is the owner of this portfolio. He is a BS Information Technology graduate (2026) from Honorato G. Baquiran College, Inc.
+
+He completed a 486-hour internship as an IT / Registration Support Intern at the Philippine Statistics Authority (PSA), Isabela Provincial Statistical Office, City of Ilagan.
+
+His experience includes:
+- PhilSys data entry and verification
+- Document processing and digital record management
+- NAS uploads and temporary PhilSys ID processing
+- Basic computer and printer troubleshooting
+
+His technical skills include HTML, CSS, JavaScript, Windows installation, basic networking, Microsoft Word, basic Excel, and Data Analytics. He can also build websites and web-based systems.
+
+Jay can be shy at first, but he is willing to learn and continuously improve his technical skills.`;
   }
 
   if (q.split(" ").length <= 6 && /\b(thank you|thanks|salamat|thank u)\b/.test(q)) {
