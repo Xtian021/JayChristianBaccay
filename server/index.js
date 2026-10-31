@@ -21,16 +21,18 @@ const CONTACT_PHONE = "09976432312";
 
 const PH_TIMEZONE = "Asia/Manila";
 
-const AI_PROVIDER = "Grok (xAI)";
-const AI_API_URL = "https://api.x.ai/v1/responses";
+const AI_PROVIDER = "Gemini (Google)";
+const AI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
+// NOTE: variable names stay GROK_* so the rest of the code keeps working.
+// Set GEMINI_API_KEY (all caps) in Render > Environment.
 const GROK_API_KEY =
-  process.env.GROK_API_KEY ||
-  process.env.XAI_API_KEY;
+  process.env.GEMINI_API_KEY ||
+  process.env.GOOGLE_API_KEY;
 
-const GROK_MODEL = process.env.GROK_MODEL || "grok-4.7";
+const GROK_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const GROK_TIMEOUT_MS = 60000;
-const GROK_MAX_TOKENS = Number(process.env.GROK_MAX_TOKENS) || 1000;
+const GROK_MAX_TOKENS = Number(process.env.GEMINI_MAX_TOKENS) || 1500;
 
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
 const GROK_MAX_CARRYOVER = Number(process.env.GROK_MAX_CARRYOVER) || 500;
@@ -1269,7 +1271,7 @@ app.post("/chat", rateLimit, async (req, res) => {
 
     // 3. API key check
     if (!GROK_API_KEY) {
-      console.error("Missing xAI API key. Set GROK_API_KEY or XAI_API_KEY.");
+      console.error("Missing Gemini API key. Set GEMINI_API_KEY (all caps) in Render > Environment.");
       return respondFallback(res, mode, tagalog, "no_key");
     }
 
@@ -1318,27 +1320,47 @@ app.post("/chat", rateLimit, async (req, res) => {
     ipUsage.attempts++;
 
     console.log(
-      `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode}`
+      `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode} | Model: ${GROK_MODEL}`
     );
 
-    // 7. Call xAI Grok Responses API (unchanged connection)
-    const response = await fetch(AI_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: GROK_MODEL,
-        input: messages,
-        max_output_tokens: GROK_MAX_TOKENS,
-        reasoning: {
-          effort: "low"
+    // 7. Call Google Gemini API
+    const systemText = messages[0].content;
+    const contents = [];
+
+    for (const m of messages.slice(1)) {
+      const role = m.role === "assistant" ? "model" : "user";
+      const last = contents[contents.length - 1];
+
+      // Gemini must start with a user turn
+      if (!last && role === "model") continue;
+
+      // Merge consecutive messages with the same role
+      if (last && last.role === role) {
+        last.parts[0].text += "\n" + m.content;
+      } else {
+        contents.push({ role, parts: [{ text: m.content }] });
+      }
+    }
+
+    const response = await fetch(
+      `${AI_API_BASE}/${encodeURIComponent(GROK_MODEL)}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GROK_API_KEY
         },
-        store: false
-      }),
-      signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
-    });
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemText }] },
+          contents,
+          generationConfig: {
+            maxOutputTokens: GROK_MAX_TOKENS,
+            temperature: 0.9
+          }
+        }),
+        signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
+      }
+    );
 
     const data = await response.json().catch(() => ({}));
 
@@ -1350,14 +1372,14 @@ app.post("/chat", rateLimit, async (req, res) => {
         `HTTP ${response.status}`;
 
       console.error(
-        "xAI API error:",
+        "Gemini API error:",
         response.status,
         errorMessage
       );
 
       const limited =
         response.status === 429 ||
-        /quota|rate limit|resource exhausted|credit|billing/i.test(errorMessage);
+        /quota|rate limit|resource.?exhausted|credit|billing/i.test(errorMessage);
 
       return respondFallback(
         res,
@@ -1367,22 +1389,16 @@ app.post("/chat", rateLimit, async (req, res) => {
       );
     }
 
-    // 8. Extract response text from Responses API
-    const answer = (data.output || [])
-      .filter(item => item.type === "message")
-      .flatMap(item => item.content || [])
-      .filter(
-        item =>
-          item.type === "output_text" &&
-          typeof item.text === "string"
-      )
-      .map(item => item.text)
-      .join("\n")
+    // 8. Extract response text from Gemini
+    const answer = (data.candidates?.[0]?.content?.parts || [])
+      .filter(part => typeof part.text === "string" && !part.thought)
+      .map(part => part.text)
+      .join("")
       .trim();
 
     if (!answer) {
       console.error(
-        "Grok returned an empty response:",
+        "Gemini returned an empty response:",
         JSON.stringify(data)
       );
 
@@ -1447,10 +1463,9 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Chatbot server running on port ${PORT}`);
   console.log(`AI provider: ${AI_PROVIDER}`);
-  console.log("xAI API key configured:", Boolean(GROK_API_KEY));
+  console.log("Gemini API key configured:", Boolean(GROK_API_KEY));
   console.log(`AI model: ${GROK_MODEL}`);
   console.log(`Daily API attempt limit: ${GROK_DAILY_LIMIT}`);
   console.log(`Per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
   console.log(`Daily counter resets at midnight ${PH_TIMEZONE}.`);
-  console.log("Key preview:", GROK_API_KEY ? `${GROK_API_KEY.slice(0, 4)}...${GROK_API_KEY.slice(-4)} (length ${GROK_API_KEY.length})` : "none");
 });
