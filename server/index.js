@@ -33,7 +33,7 @@ const GROK_API_KEY =
 const GROK_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const GEMINI_FALLBACK_MODEL =
   process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash-lite";
-const GROK_TIMEOUT_MS = 60000;
+const GROK_TIMEOUT_MS = 45000;
 const GROK_MAX_TOKENS = Number(process.env.GEMINI_MAX_TOKENS) || 1500;
 
 const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
