@@ -4,6 +4,7 @@ require("dotenv").config({
 
 const express = require("express");
 const cors = require("cors");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -40,6 +41,18 @@ const GROK_DAILY_LIMIT = Number(process.env.GROK_DAILY_LIMIT) || 500;
 const GROK_MAX_CARRYOVER = Number(process.env.GROK_MAX_CARRYOVER) || 500;
 const GROK_PER_IP_DAILY_LIMIT =
   Number(process.env.GROK_PER_IP_DAILY_LIMIT) || 30;
+
+// Secret owner code. Set OWNER_ACCESS_CODE in Render > Environment.
+const OWNER_ACCESS_CODE = process.env.OWNER_ACCESS_CODE || "";
+
+function isOwnerRequest(req) {
+  const supplied = String(req.body?.ownerCode || req.get("x-owner-code") || "");
+  if (!OWNER_ACCESS_CODE || !supplied) return false;
+
+  const a = crypto.createHash("sha256").update(supplied).digest();
+  const b = crypto.createHash("sha256").update(OWNER_ACCESS_CODE).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 const ALLOWED_ORIGINS = [
   "http://127.0.0.1:5500",
@@ -385,7 +398,7 @@ function detectMode(message, q, history = []) {
 // Is the visitor talking about Jay (or the bot as Jay)?
 const ABOUT_JAY_RE =
   /\b(jay|jays|christian|baccay|niya|nya|siya|sya|he|his|him|owner|portfolio|your|mo)\b/;
-const MINE_RE = /\b(my|mine|me|i|im|ako|ko|akin|namin|our)\b/;
+const MINE_RE = /\b(my|mine|me|myself|i|im|ako|ko|akin|namin|our)\b/;
 const EXPLAIN_RE = /\b(what is|whats|how to|how do|paano|ano ang|ano yung)\b/;
 
 function isAboutJay(q) {
@@ -1216,6 +1229,32 @@ NEUTRAL MODE:
 }
 
 // ==========================================
+// OWNER / PUBLIC VISITOR INSTRUCTIONS
+// ==========================================
+
+const OWNER_MODE_INSTRUCTION = `
+
+OWNER MODE:
+- The authenticated person chatting with you is Jay Christian Baccay, the portfolio owner.
+- You may address the authenticated user as Jay.
+- You may discuss Jay's verified profile, career goals, learning progress, and projects directly with him.
+- Understand first-person questions such as "Tell me about myself" as questions from Jay, and answer using only the verified information in this prompt.
+- Do not invent personal details or claim access to information that is not provided.
+- Keep the existing romantic privacy rules. Never reveal or guess crush identities, names, clues, or private romantic details.
+- Do not reveal the owner access code, token, or authentication details.
+`;
+
+const PUBLIC_MODE_INSTRUCTION = `
+
+PUBLIC VISITOR MODE:
+- The person chatting with you is an ordinary portfolio visitor.
+- Do not assume the visitor is Jay, even if they say "I", "me", or "myself".
+- If a visitor asks "Tell me about myself", explain that you only know about Jay's portfolio and do not know the visitor's personal identity.
+- You may answer questions about Jay using the public portfolio information.
+- Never reveal owner-only information or claim that the visitor is Jay.
+`;
+
+// ==========================================
 // API ENDPOINTS
 // ==========================================
 
@@ -1234,6 +1273,7 @@ app.get("/health", (req, res) => {
     message: "Chatbot server is running.",
     provider: AI_PROVIDER,
     apiKeyConfigured: Boolean(GROK_API_KEY),
+    ownerCodeConfigured: Boolean(OWNER_ACCESS_CODE),
     grokDailyLimit: getGrokLimitToday(),
     grokBaseDailyLimit: GROK_DAILY_LIMIT,
     grokCarryOver: usage.bonus,
@@ -1271,7 +1311,7 @@ function callGemini(model, systemText, contents) {
           temperature: 0.9
         }
       }),
-     signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
+      signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
     }
   );
 }
@@ -1323,11 +1363,25 @@ app.post("/chat", rateLimit, async (req, res) => {
     const history = cleanHistory(rawHistory, cleanMessage);
     const normalizedMessage = normalizeMessage(cleanMessage);
 
-    const mode = detectMode(cleanMessage, normalizedMessage, history);
+    // Is this really Jay? (checked on the server with the secret code)
+    const isOwner = isOwnerRequest(req);
+
+    let mode = detectMode(cleanMessage, normalizedMessage, history);
+
+    // Owner is never treated as a recruiter/visitor
+    if (isOwner) {
+      mode = isPlayful(cleanMessage, normalizedMessage) ? "playful" : "neutral";
+    }
+
     const tagalog = isTagalog(normalizedMessage);
 
     // 1. Local answers first. These do not consume AI quota.
-    const localAnswer = getLocalAnswer(cleanMessage, history);
+    // Owner's first-person questions ("tell me about myself", "my resume")
+    // must go to the AI, not the visitor-style local answers.
+    const ownerFirstPerson = isOwner && MINE_RE.test(normalizedMessage);
+    const localAnswer = ownerFirstPerson
+      ? null
+      : getLocalAnswer(cleanMessage, history);
 
     if (localAnswer) {
       return res.json({
@@ -1337,9 +1391,13 @@ app.post("/chat", rateLimit, async (req, res) => {
       });
     }
 
-    // 2. Cache only first professional questions (keeps casual replies fresh and funny).
+    // 2. Cache only first professional questions from visitors (never owner).
     const hasHistory = history.length > 0;
-    const canCache = !hasHistory && mode === "professional" && normalizedMessage.length > 0;
+    const canCache =
+      !isOwner &&
+      !hasHistory &&
+      mode === "professional" &&
+      normalizedMessage.length > 0;
     const cacheKey = `${mode}|${normalizedMessage}`;
 
     if (canCache) {
@@ -1406,11 +1464,14 @@ app.post("/chat", rateLimit, async (req, res) => {
     ipUsage.attempts++;
 
     console.log(
-      `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode} | Model: ${GROK_MODEL}`
+      `${AI_PROVIDER} attempt ${usage.attempts}/${getGrokLimitToday()} | Mode: ${mode} | Owner: ${isOwner} | Model: ${GROK_MODEL}`
     );
 
     // 7. Call Google Gemini API (with retry + backup model)
-    const systemText = messages[0].content;
+    const systemText =
+      messages[0].content +
+      (isOwner ? OWNER_MODE_INSTRUCTION : PUBLIC_MODE_INSTRUCTION);
+
     const contents = [];
 
     for (const m of messages.slice(1)) {
@@ -1530,6 +1591,7 @@ app.listen(PORT, () => {
   console.log(`Chatbot server running on port ${PORT}`);
   console.log(`AI provider: ${AI_PROVIDER}`);
   console.log("Gemini API key configured:", Boolean(GROK_API_KEY));
+  console.log("Owner access code configured:", Boolean(OWNER_ACCESS_CODE));
   console.log(`AI model: ${GROK_MODEL} (backup: ${GEMINI_FALLBACK_MODEL})`);
   console.log(`Daily API attempt limit: ${GROK_DAILY_LIMIT}`);
   console.log(`Per-IP daily limit: ${GROK_PER_IP_DAILY_LIMIT}`);
