@@ -1271,7 +1271,7 @@ function callGemini(model, systemText, contents) {
           temperature: 0.9
         }
       }),
-      signal: AbortSignal.timeout(Math.min(GROK_TIMEOUT_MS, 25000))
+     signal: AbortSignal.timeout(GROK_TIMEOUT_MS)
     }
   );
 }
